@@ -271,6 +271,7 @@ function onPrintMaterials(raw) {
         name:m[0], type:m[1], width:parseFloat(m[2]), height:parseFloat(m[3]),
         costSheet:parseFloat(m[4]), costLinFt:parseFloat(m[5])
     }));
+    console.log('allPrintMaterials loaded:', allPrintMaterials.map(m => m.name));
     printLoaded = true; checkLoaded();
 }
 function checkLoaded() {
@@ -324,7 +325,12 @@ function driverOpts() {
 }
 function prtMatOpts() {
     let o = '<option value="">Select Material...</option>';
-    allPrintMaterials.forEach(m => { o += `<option value="${m.name}">${m.name}</option>`; });
+    allPrintMaterials.forEach(m => {
+        const opt = document.createElement('option');
+        opt.value = m.name;
+        opt.textContent = m.name;
+        o += opt.outerHTML;
+    });
     return o;
 }
 
@@ -526,7 +532,8 @@ function buildComRow(d) {
 const toHrs = (t, u) => { const n = Number(t)||0; return u === 'Minutes' ? n/60 : n; };
 
 function calcPrintCosts(ps) {
-    const mat = allPrintMaterials.find(m => m.name === ps.materialName);
+    const matName = (ps.materialName || '').trim();
+    const mat = allPrintMaterials.find(m => m.name.trim() === matName);
     if (!mat || !ps.quantity || !ps.width || !ps.height) return null;
     const qty = Number(ps.quantity)||0, aw = Number(ps.width)||0, ah = Number(ps.height)||0;
     const bl = 0.25, sp = 0.25, awt = aw+bl, aht = ah+bl;
