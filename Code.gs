@@ -31,12 +31,12 @@ const materialsSheet = {
         return name && name.toString().trim() !== "" && primaryCategory && primaryCategory.toString().toUpperCase().includes(category);
       });
 
-    if (category === 'PRINT') {
+    if (category.includes('PRINT')) {
         return filteredValues.map(row => {
             const name = row[1].toString().trim(); // Column B
             const type = row[6] ? row[6].toString().trim().toUpperCase() : 'SHEET'; // Column G (Material Type)
             const width = parseFloat(row[7]) || 0; // Column H (inches)
-            const length = parseFloat(row[8]) || 0; // Column I (feet for ROLL, inches for SHEET)
+            const length = parseFloat(row[8]) || 0; // Column I (inches)
             let sheetCost = row[9]; // Column J
 
             if (sheetCost && typeof sheetCost === 'string') {
@@ -47,10 +47,11 @@ const materialsSheet = {
             }
             
             // Calculate linear foot cost for ROLL materials
-            // For ROLL: length is already in feet, so cost per linear foot = unit cost / length
+            // length is in inches, so convert to linear feet first
             let costLinFt = 0;
             if (type === 'ROLL' && length > 0) {
-                costLinFt = sheetCost / length;
+                const linFt = length / 12;
+                costLinFt = sheetCost / linFt;
             }
             
             // Return: [name, type, width, height, costSheet, costLinFt]
@@ -1222,9 +1223,11 @@ getMaterialByName: function(materialName) {
       }
       
       // Calculate cost per linear foot for ROLL materials
+      // length is in inches, convert to linear feet first
       let costLinFt = 0;
       if (type === 'ROLL' && length > 0) {
-        costLinFt = unitCost / length;
+        const linFt = length / 12;
+        costLinFt = unitCost / linFt;
       }
       
       return {
