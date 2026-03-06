@@ -118,7 +118,7 @@ const personnelSheet = {
 const fabricationApp = {
   showDialog: function() {
     const htmlOutput = HtmlService.createHtmlOutputFromFile('FabricationIndex')
-        .setWidth(750)
+        .setWidth(1250)
         .setHeight(850);
     const ui = SpreadsheetApp.getUi();
     ui.showModalDialog(htmlOutput, 'Fabrication Details');
@@ -146,7 +146,7 @@ const fabricationApp = {
     const formData = projectSheet.getLoggedFormData(logId, 'FabricationLog');
     if (formData) {
       const htmlOutput = HtmlService.createHtmlOutputFromFile('FabricationIndex')
-          .setWidth(750)
+          .setWidth(1250)
           .setHeight(850);
       
       const htmlContent = htmlOutput.getContent();
@@ -156,7 +156,7 @@ const fabricationApp = {
       );
       
       const modifiedOutput = HtmlService.createHtmlOutput(modifiedContent)
-          .setWidth(750)
+          .setWidth(1250)
           .setHeight(850);
       
       const ui = SpreadsheetApp.getUi();
@@ -185,7 +185,7 @@ const fabricationApp = {
 const apparelApp = {
   showDialog: function() {
     const htmlOutput = HtmlService.createHtmlOutputFromFile('ApparelIndex')
-        .setWidth(750)
+        .setWidth(1250)
         .setHeight(850);
     const ui = SpreadsheetApp.getUi();
     ui.showModalDialog(htmlOutput, 'Apparel / Screen Printing');
@@ -195,7 +195,7 @@ const apparelApp = {
     const formData = projectSheet.getLoggedFormData(logId, 'ApparelLog');
     if (formData) {
       const htmlOutput = HtmlService.createHtmlOutputFromFile('ApparelIndex')
-          .setWidth(750)
+          .setWidth(1250)
           .setHeight(850);
       
       const htmlContent = htmlOutput.getContent();
@@ -205,7 +205,7 @@ const apparelApp = {
       );
       
       const modifiedOutput = HtmlService.createHtmlOutput(modifiedContent)
-          .setWidth(750)
+          .setWidth(1250)
           .setHeight(850);
       
       const ui = SpreadsheetApp.getUi();
@@ -234,7 +234,7 @@ const apparelApp = {
 const printingApp = {
   showDialog: function() {
     const htmlOutput = HtmlService.createHtmlOutputFromFile('PrintingIndex')
-        .setWidth(750)
+        .setWidth(1250)
         .setHeight(850);
     const ui = SpreadsheetApp.getUi();
     ui.showModalDialog(htmlOutput, 'PrintCut Estimate');
@@ -253,7 +253,7 @@ const printingApp = {
     const formData = projectSheet.getLoggedFormData(logId, 'PrintingLog');
     if (formData) {
       const htmlOutput = HtmlService.createHtmlOutputFromFile('PrintingIndex')
-          .setWidth(750)
+          .setWidth(1250)
           .setHeight(850);
       
       const htmlContent = htmlOutput.getContent();
