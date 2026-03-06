@@ -2,920 +2,696 @@
 <html>
 <head>
     <base target="_top">
-    <!-- Load Tailwind CSS for styling -->
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        /* Custom styles for the drawer transition */
-        #advanced-drawer {
-            transition: transform 0.3s ease-in-out;
-        }
-        /* Style for active option buttons */
-        .option-btn.active {
-            background-color: #2563eb; /* Corresponds to Tailwind's blue-600 */
-            color: white;
-        }
-        /* Remove arrows from number inputs */
+        #advanced-drawer { transition: transform 0.3s ease-in-out; }
         input[type=number]::-webkit-inner-spin-button,
-        input[type=number]::-webkit-outer-spin-button {
-            -webkit-appearance: none;
-            margin: 0;
-        }
-        input[type=number] {
-            -moz-appearance: textfield;
-        }
-        /* Style for remove buttons */
-        .remove-row-btn {
-            color: #ef4444;
-            cursor: pointer;
-            font-size: 14px;
-            line-height: 1;
-        }
-        .remove-row-btn:hover {
-            color: #dc2626;
-        }
+        input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+        input[type=number] { -moz-appearance: textfield; }
+        .remove-row-btn { color: #ef4444; cursor: pointer; font-size: 14px; line-height: 1; }
+        .remove-row-btn:hover { color: #dc2626; }
+
+        /* Drag */
+        .draggable-row { position: relative; }
+        .draggable-row.dragging { opacity: 0.4; background: #eff6ff; border-radius: 4px; }
+        .drag-handle { color: #9ca3af; cursor: grab; flex-shrink: 0; display: flex; align-items: center; padding: 0 2px; margin-top: 4px; }
+        .drag-handle:hover { color: #6b7280; }
+        .drag-over-top { border-top: 2px solid #3b82f6 !important; }
+
+        /* Sections */
+        .fab-section { border: 1px solid #e5e7eb; border-radius: 8px; margin-bottom: 12px; background: #fafafa; }
+        .fab-section-header { display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: #f3f4f6; border-radius: 7px 7px 0 0; border-bottom: 1px solid #e5e7eb; }
+        .fab-section-header.collapsed { border-radius: 7px; border-bottom: none; }
+        .fab-section-title { font-size: 12px; font-weight: 600; color: #374151; background: transparent; border: none; outline: none; flex-grow: 1; min-width: 0; }
+        .fab-section-title:focus { background: white; border: 1px solid #d1d5db; border-radius: 4px; padding: 1px 4px; }
+        .fab-section-body { padding: 10px 12px 12px; }
+        .fab-section-subtotal { font-size: 11px; color: #6b7280; white-space: nowrap; flex-shrink: 0; }
+        .drop-zone { min-height: 32px; border-radius: 4px; transition: background 0.15s; }
+        .drop-zone.drag-active { background: #eff6ff; border: 1.5px dashed #93c5fd; }
+
+        /* Badges */
+        .row-type-badge { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; padding: 1px 5px; border-radius: 3px; flex-shrink: 0; }
+        .badge-mat { background: #dbeafe; color: #1d4ed8; }
+        .badge-per { background: #d1fae5; color: #065f46; }
+        .badge-com { background: #fef3c7; color: #92400e; }
+        .badge-prt { background: #ede9fe; color: #6d28d9; }
+
+        /* Personnel date */
+        .date-input-wrap { overflow: hidden; max-height: 0; transition: max-height 0.2s ease; }
+        .date-input-wrap.open { max-height: 40px; }
+
+        /* Chevron */
+        .chevron { transition: transform 0.2s; }
+        .chevron.open { transform: rotate(90deg); }
+
+        /* Section add buttons */
+        .sec-btn { font-size: 11px; color: #2563eb; font-weight: 600; display: inline-flex; align-items: center; gap: 3px; cursor: pointer; background: none; border: none; padding: 2px 0; }
+        .sec-btn:hover { color: #1d4ed8; }
+        .sec-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+        .sec-btn.prt { color: #7c3aed; }
+        .sec-btn.prt:hover { color: #6d28d9; }
+
+        /* Printing block */
+        .print-block { border: 1px solid #ddd6fe; border-radius: 6px; background: #faf5ff; margin-top: 4px; }
+        .print-block-header { display: flex; align-items: center; gap: 6px; padding: 6px 10px; background: #ede9fe; border-radius: 5px 5px 0 0; border-bottom: 1px solid #ddd6fe; cursor: pointer; user-select: none; }
+        .print-block-header.collapsed { border-radius: 5px; border-bottom: none; }
+        .print-block-body { padding: 10px 12px 12px; }
+        .print-cost-line { display: flex; justify-content: space-between; font-size: 10px; color: #6b7280; padding: 1px 0; }
+        .print-cost-line.subtotal-line { font-weight: 600; color: #374151; border-top: 1px solid #ddd6fe; margin-top: 4px; padding-top: 4px; }
+        .print-error { font-size: 10px; color: #dc2626; margin-top: 4px; }
+
+        /* Adv labor */
+        .adv-labor-body { display: none; margin-top: 6px; }
+        .adv-labor-body.open { display: block; }
     </style>
 </head>
 <body class="bg-gray-100 flex items-center justify-center min-h-screen p-4">
 
-    <div class="w-full max-w-2xl shadow-lg rounded-lg overflow-hidden bg-white">
-        <div class="flex">
-            <!-- Main Content -->
-            <div class="flex-grow p-6">
-                <h1 class="text-xl font-semibold text-gray-800 mb-6">Fabrication Details</h1>
+<div class="w-full max-w-2xl shadow-lg rounded-lg overflow-hidden bg-white">
+  <div class="flex">
+    <div class="flex-grow p-6">
+      <h1 class="text-xl font-semibold text-gray-800 mb-6">Fabrication Details</h1>
 
-                <!-- Description and Dimensions Section -->
-                <div class="grid grid-cols-12 gap-x-2 mb-6 items-start">
-                    <div class="col-span-8">
-                        <label class="text-xs font-medium text-gray-600 block text-left">Description</label>
-                        <textarea id="description" class="mt-1 block w-full px-2 py-1 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 text-xs" rows="3"></textarea>
-                    </div>
-                    <div class="col-span-4">
-                        <label class="text-xs font-medium text-gray-600 block text-left">Dimensions</label>
-                        <input id="dimensions" type="text" class="mt-1 block w-full px-2 py-1 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 text-xs h-7" />
-                    </div>
-                </div>
-
-                <!-- Add Section Links -->
-                <div class="flex items-center gap-4 mb-6">
-                    <button id="add-material-link" class="text-blue-600 text-xs font-semibold flex items-center gap-1 hover:text-blue-800">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-                        Add Material
-                    </button>
-                    <button id="add-personnel-link" class="text-blue-600 text-xs font-semibold flex items-center gap-1 hover:text-blue-800">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-                        Add Personnel
-                    </button>
-                    <button id="add-component-link" class="text-blue-600 text-xs font-semibold flex items-center gap-1 hover:text-blue-800">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-                        Add Components
-                    </button>
-                </div>
-
-                <!-- Materials Section (Hidden by default) -->
-                <div id="materials-section" class="mb-6 hidden">
-                    <div class="grid grid-cols-12 gap-x-2 items-start mb-2">
-                        <div class="col-span-5"><label class="text-xs font-medium text-gray-600 block text-left">Materials</label></div>
-                        <div class="col-span-2"><label class="text-xs font-medium text-gray-600 block text-left">Qty</label></div>
-                        <div class="col-span-2"><label class="text-xs font-medium text-gray-600 block text-left">Unit Cost</label></div>
-                        <div class="col-span-2"><label class="text-xs font-medium text-gray-600 block text-left">Total</label></div>
-                        <div class="col-span-1"></div> <!-- Empty space for remove button column -->
-                    </div>
-                    <div id="materials-container">
-                        <!-- Material rows will be added here dynamically -->
-                    </div>
-                </div>
-
-                <!-- Personnel Section (Hidden by default) -->
-                <div id="personnel-section" class="mb-6 hidden">
-                    <div class="grid grid-cols-12 gap-x-2 items-start mb-2">
-                        <div class="col-span-5"><label class="text-xs font-medium text-gray-600 block text-left">Personnel</label></div>
-                        <div class="col-span-1"><label class="text-xs font-medium text-gray-600 block text-left">Days</label></div>
-                        <div class="col-span-1"><label class="text-xs font-medium text-gray-600 block text-left">Hrs</label></div>
-                        <div class="col-span-2"><label class="text-xs font-medium text-gray-600 block text-left">Rate</label></div>
-                        <div class="col-span-2"><label class="text-xs font-medium text-gray-600 block text-left">Total</label></div>
-                        <div class="col-span-1"></div> <!-- Empty space for remove button column -->
-                    </div>
-                    <div id="personnel-container">
-                        <!-- Personnel rows will be added here dynamically -->
-                    </div>
-                </div>
-
-                <!-- Additional Components Section (Hidden by default) -->
-                <div id="components-section" class="mb-8 hidden">
-                    <div class="grid grid-cols-12 gap-x-2 items-start mb-2">
-                        <div class="col-span-5"><label class="text-xs font-medium text-gray-600 block text-left">Additional Components</label></div>
-                        <div class="col-span-2"><label class="text-xs font-medium text-gray-600 block text-left">Qty</label></div>
-                        <div class="col-span-2"><label class="text-xs font-medium text-gray-600 block text-left">Rate</label></div>
-                        <div class="col-span-2"><label class="text-xs font-medium text-gray-600 block text-left">Total</label></div>
-                        <div class="col-span-1"></div> <!-- Empty space for remove button column -->
-                    </div>
-                    <div id="components-container">
-                        <!-- Component rows will be added here dynamically -->
-                    </div>
-                </div>
-
-                <!-- Bottom/Results Section -->
-                <div class="flex flex-col justify-between rounded-md bg-gray-100 p-3 mt-auto">
-                   <div class="grid sm:grid-cols-[1fr_auto_1fr] items-center gap-x-4 gap-y-4 h-full">
-                        <div class="space-y-2">
-                            <div class="grid grid-cols-2 items-center"><div class="text-xs text-left">Total Cost</div><div id="total-cost" class="text-xs text-left font-semibold">$0.00</div></div>
-                            <div class="grid grid-cols-2 items-center">
-                                <div class="text-xs text-left">Margin</div>
-                                 <div class="relative w-20">
-                                    <input id="margin" type="number" value="40" min="0" step="1" class="w-full h-8 pr-6 pl-2 border border-gray-300 rounded-md text-sm" />
-                                    <span class="absolute inset-y-0 right-0 flex items-center pr-2 text-gray-500 text-sm">%</span>
-                                 </div>
-                            </div>
-                             <div class="grid grid-cols-2 items-center"><div class="text-xs text-left">Total Price</div><div id="total-price" class="text-xs text-left font-semibold">$0.00</div></div>
-                             <div class="grid grid-cols-2 items-center"><div class="text-xs text-left">Unit Price</div><div id="unit-price" class="text-xs text-left font-semibold">$0.00</div></div>
-                        </div>
-                        <div class="hidden sm:flex justify-center h-full"><div class="border-l border-gray-300"></div></div>
-                        <div class="flex flex-col justify-center items-center gap-2.5">
-                            <button id="add-to-project-btn" class="w-full bg-blue-600 text-white px-4 py-1 rounded-md text-sm hover:bg-blue-700">Add to Project</button>
-                            <button id="reset-btn" class="w-full bg-white border border-gray-300 px-4 py-1 rounded-md text-sm hover:bg-gray-50">Reset</button>
-                        </div>
-                   </div>
-                </div>
-
-            </div>
-            
-            <!-- Drawer Trigger -->
-            <div id="drawer-trigger" class="flex-shrink-0 bg-gray-50 hover:bg-gray-200 transition-colors cursor-pointer flex items-center justify-center w-10" style="box-shadow: -4px 0 12px -4px rgba(0,0,0,0.05)">
-                <div class="flex flex-col items-center gap-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-gray-500"><polyline points="15 18 9 12 15 6"></polyline></svg>
-                    <span class="text-xs font-medium text-gray-500" style="writing-mode: vertical-rl; text-orientation: mixed; transform: rotate(180deg);">Advanced Settings</span>
-                </div>
-            </div>
+      <!-- Description + Dimensions -->
+      <div class="grid grid-cols-12 gap-x-2 mb-6 items-start">
+        <div class="col-span-8">
+          <label class="text-xs font-medium text-gray-600 block">Description</label>
+          <textarea id="description" class="mt-1 block w-full px-2 py-1 bg-white border border-gray-300 rounded-md shadow-sm text-xs" rows="3"></textarea>
         </div>
+        <div class="col-span-4">
+          <label class="text-xs font-medium text-gray-600 block">Dimensions</label>
+          <input id="dimensions" type="text" class="mt-1 block w-full px-2 py-1 bg-white border border-gray-300 rounded-md shadow-sm text-xs h-7"/>
+        </div>
+      </div>
+
+      <!-- Global Add Bar -->
+      <div class="flex flex-wrap items-center gap-x-4 gap-y-2 mb-4">
+        <button id="btn-add-mat" class="text-blue-600 text-xs font-semibold flex items-center gap-1 hover:text-blue-800">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Add Material
+        </button>
+        <button id="btn-add-per" class="text-blue-600 text-xs font-semibold flex items-center gap-1 hover:text-blue-800">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Add Personnel
+        </button>
+        <button id="btn-add-com" class="text-blue-600 text-xs font-semibold flex items-center gap-1 hover:text-blue-800">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Add Components
+        </button>
+        <button id="btn-add-prt" class="text-purple-600 text-xs font-semibold flex items-center gap-1 hover:text-purple-800">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Add Printing
+        </button>
+        <button id="btn-add-sec" class="text-gray-500 text-xs font-semibold flex items-center gap-1 hover:text-gray-700 ml-auto border border-gray-300 rounded px-2 py-0.5">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Add Section
+        </button>
+      </div>
+
+      <!-- Ungrouped drop zone -->
+      <div id="ungrouped-area" class="drop-zone mb-2"></div>
+
+      <!-- Sections -->
+      <div id="sections-container"></div>
+
+      <!-- Results -->
+      <div class="rounded-md bg-gray-100 p-3 mt-4">
+        <div class="grid sm:grid-cols-[1fr_auto_1fr] items-center gap-x-4 gap-y-4">
+          <div class="space-y-2">
+            <div class="grid grid-cols-2 items-center"><div class="text-xs">Total Cost</div><div id="total-cost" class="text-xs font-semibold">$0.00</div></div>
+            <div class="grid grid-cols-2 items-center">
+              <div class="text-xs">Margin</div>
+              <div class="relative w-20">
+                <input id="margin" type="number" value="40" min="0" step="1" class="w-full h-8 pr-6 pl-2 border border-gray-300 rounded-md text-sm"/>
+                <span class="absolute inset-y-0 right-0 flex items-center pr-2 text-gray-500 text-sm">%</span>
+              </div>
+            </div>
+            <div class="grid grid-cols-2 items-center"><div class="text-xs">Total Price</div><div id="total-price" class="text-xs font-semibold">$0.00</div></div>
+            <div class="grid grid-cols-2 items-center"><div class="text-xs">Unit Price</div><div id="unit-price" class="text-xs font-semibold">$0.00</div></div>
+          </div>
+          <div class="hidden sm:flex justify-center h-full"><div class="border-l border-gray-300"></div></div>
+          <div class="flex flex-col justify-center items-center gap-2.5">
+            <button id="add-to-project-btn" class="w-full bg-blue-600 text-white px-4 py-1 rounded-md text-sm hover:bg-blue-700">Add to Project</button>
+            <button id="reset-btn" class="w-full bg-white border border-gray-300 px-4 py-1 rounded-md text-sm hover:bg-gray-50">Reset</button>
+          </div>
+        </div>
+      </div>
     </div>
 
-    <!-- Advanced Settings Drawer -->
-    <div id="advanced-drawer" class="fixed top-0 right-0 h-full w-80 bg-white shadow-xl p-4 transform translate-x-full">
-        <div class="flex justify-between items-center mb-4">
-            <h2 class="text-base font-semibold">Advanced Settings</h2>
-            <button id="close-drawer-btn" class="text-gray-500 hover:text-gray-800 text-2xl">&times;</button>
-        </div>
-        <!-- Advanced settings content can be added here -->
+    <!-- Drawer Trigger -->
+    <div id="drawer-trigger" class="flex-shrink-0 bg-gray-50 hover:bg-gray-200 transition-colors cursor-pointer flex items-center justify-center w-10" style="box-shadow:-4px 0 12px -4px rgba(0,0,0,0.05)">
+      <div class="flex flex-col items-center gap-2">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-gray-500"><polyline points="15 18 9 12 15 6"/></svg>
+        <span class="text-xs font-medium text-gray-500" style="writing-mode:vertical-rl;text-orientation:mixed;transform:rotate(180deg)">Advanced Settings</span>
+      </div>
     </div>
-
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // === GLOBAL VARIABLES ===
-            let allMaterialsData = [];
-            let allPersonnelData = [];
-            let materialRowCounter = 0;
-            let personnelRowCounter = 0;
-            let componentRowCounter = 0;
-            let isDataLoaded = false;
-            let isDataLoading = true;
-            let isEditMode = false;
-            let originalRowNumber = null;
-
-            // === DOM ELEMENTS ===
-            const drawer = document.getElementById('advanced-drawer');
-            const drawerTrigger = document.getElementById('drawer-trigger');
-            const closeDrawerBtn = document.getElementById('close-drawer-btn');
-            const resetBtn = document.getElementById('reset-btn');
-            const addToProjectBtn = document.getElementById('add-to-project-btn');
-
-            const addMaterialLink = document.getElementById('add-material-link');
-            const addPersonnelLink = document.getElementById('add-personnel-link');
-            const addComponentLink = document.getElementById('add-component-link');
-
-            // === DATA LOADING FUNCTIONS ===
-
-            /**
-             * Checks if all required data has been loaded
-             */
-            function checkDataLoadStatus() {
-                if (allMaterialsData.length > 0 && allPersonnelData.length > 0) {
-                    isDataLoaded = true;
-                    isDataLoading = false;
-                    enableAddButtons();
-                    console.log("All data loaded successfully");
-                    
-                    // If we're in edit mode, populate the form now that data is ready
-                    if (window.editFormData) {
-                        populateFormData(window.editFormData);
-                    }
-                }
-            }
-
-            /**
-             * Enables the add buttons once data is loaded
-             */
-            function enableAddButtons() {
-                addMaterialLink.classList.remove('opacity-50', 'cursor-not-allowed');
-                addPersonnelLink.classList.remove('opacity-50', 'cursor-not-allowed');
-                addComponentLink.classList.remove('opacity-50', 'cursor-not-allowed');
-                
-                addMaterialLink.querySelector('span')?.remove(); // Remove loading text if exists
-                addPersonnelLink.querySelector('span')?.remove();
-            }
-
-            /**
-             * Disables add buttons while data is loading
-             */
-            function disableAddButtons() {
-                addMaterialLink.classList.add('opacity-50', 'cursor-not-allowed');
-                addPersonnelLink.classList.add('opacity-50', 'cursor-not-allowed');
-                
-                // Add loading indicators
-                if (!addMaterialLink.querySelector('span')) {
-                    const loadingSpan = document.createElement('span');
-                    loadingSpan.textContent = ' (Loading...)';
-                    loadingSpan.className = 'text-gray-400';
-                    addMaterialLink.appendChild(loadingSpan);
-                }
-                
-                if (!addPersonnelLink.querySelector('span')) {
-                    const loadingSpan = document.createElement('span');
-                    loadingSpan.textContent = ' (Loading...)';
-                    loadingSpan.className = 'text-gray-400';
-                    addPersonnelLink.appendChild(loadingSpan);
-                }
-            }
-
-            const materialsSection = document.getElementById('materials-section');
-            const personnelSection = document.getElementById('personnel-section');
-            const componentsSection = document.getElementById('components-section');
-            
-            const materialsContainer = document.getElementById('materials-container');
-            const personnelContainer = document.getElementById('personnel-container');
-            const componentsContainer = document.getElementById('components-container');
-
-            // === FABRICATION CALCULATOR FUNCTIONS ===
-
-            /**
-             * Populates the material dropdown and stores the full data set.
-             * @param {Array<Object>} materials - Array of objects with 'name' and 'unitCost'.
-             */
-            function populateMaterialDropdown(materials) {
-                if (!materials || materials.length === 0) {
-                    console.log("No materials found or returned from server.");
-                    // Still mark as loaded to prevent indefinite loading state
-                    allMaterialsData = [];
-                    checkDataLoadStatus();
-                    return;
-                }
-                allMaterialsData = materials;
-                console.log("Fabrication materials loaded:", materials.length);
-                checkDataLoadStatus();
-            }
-
-            /**
-             * Populates personnel data and stores the full data set.
-             * @param {Array<Object>} personnel - Array of objects with 'name' and 'projectRate'.
-             */
-            function populatePersonnelData(personnel) {
-                if (!personnel || personnel.length === 0) {
-                    console.log("No personnel found or returned from server.");
-                    // Still mark as loaded to prevent indefinite loading state
-                    allPersonnelData = [];
-                    checkDataLoadStatus();
-                    return;
-                }
-                allPersonnelData = personnel;
-                console.log("Personnel data loaded:", personnel.length);
-                checkDataLoadStatus();
-            }
-
-            /**
-             * Creates a material dropdown with all available materials
-             * @returns {string} HTML string for material dropdown
-             */
-            function createMaterialDropdown() {
-                let options = '<option value="">Select Material...</option>';
-                allMaterialsData.forEach(material => {
-                    options += `<option value="${material.name}" data-cost="${material.unitCost}">${material.name}</option>`;
-                });
-                return options;
-            }
-
-            /**
-             * Creates a personnel dropdown with all available personnel
-             * @returns {string} HTML string for personnel dropdown
-             */
-            function createPersonnelDropdown() {
-                let options = '<option value="">Select Personnel...</option>';
-                allPersonnelData.forEach(person => {
-                    options += `<option value="${person.name}" data-rate="${person.projectRate}">${person.name}</option>`;
-                });
-                return options;
-            }
-
-            /**
-             * Adds a new material row to the materials section
-             */
-            function addMaterialRow() {
-                // Check if data is loaded
-                if (!isDataLoaded) {
-                    alert('Please wait for material data to finish loading before adding materials.');
-                    return;
-                }
-
-                materialRowCounter++;
-                const rowId = `material-row-${materialRowCounter}`;
-                
-                const materialRow = document.createElement('div');
-                materialRow.className = 'grid grid-cols-12 gap-x-2 mt-1 material-row';
-                materialRow.id = rowId;
-                materialRow.innerHTML = `
-                    <select class="material-dropdown col-span-5 mt-1 block w-full px-2 py-1 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 text-xs h-7">
-                        ${createMaterialDropdown()}
-                    </select>
-                    <input type="number" class="material-qty col-span-2 mt-1 block w-full px-2 py-1 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 text-xs h-7" placeholder="0" step="0.01" />
-                    <input type="number" class="material-unit-cost col-span-2 mt-1 block w-full px-2 py-1 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 text-xs h-7" placeholder="0.00" step="0.01" />
-                    <input type="number" class="material-total col-span-2 mt-1 block w-full px-2 py-1 bg-gray-100 border border-gray-300 rounded-md shadow-sm text-xs h-7" disabled />
-                    <button class="remove-row-btn col-span-1 mt-1 flex items-center justify-center" onclick="removeMaterialRow('${rowId}')" title="Remove row">
-                        ×
-                    </button>
-                `;
-
-                materialsContainer.appendChild(materialRow);
-
-                // Add event listeners for this row
-                const dropdown = materialRow.querySelector('.material-dropdown');
-                const qtyInput = materialRow.querySelector('.material-qty');
-                const unitCostInput = materialRow.querySelector('.material-unit-cost');
-                const totalInput = materialRow.querySelector('.material-total');
-
-                // Auto-populate unit cost when material is selected
-                dropdown.addEventListener('change', function() {
-                    const selectedOption = this.options[this.selectedIndex];
-                    if (selectedOption.dataset.cost) {
-                        unitCostInput.value = parseFloat(selectedOption.dataset.cost).toFixed(2);
-                        calculateMaterialRowTotal();
-                    } else {
-                        unitCostInput.value = '';
-                        totalInput.value = '';
-                    }
-                    updateTotalCosts();
-                });
-
-                // Calculate row total when qty or unit cost changes
-                function calculateMaterialRowTotal() {
-                    const qty = parseFloat(qtyInput.value) || 0;
-                    const unitCost = parseFloat(unitCostInput.value) || 0;
-                    const total = qty * unitCost;
-                    totalInput.value = total.toFixed(2);
-                }
-
-                qtyInput.addEventListener('input', function() {
-                    calculateMaterialRowTotal();
-                    updateTotalCosts();
-                });
-
-                unitCostInput.addEventListener('input', function() {
-                    calculateMaterialRowTotal();
-                    updateTotalCosts();
-                });
-            }
-
-            /**
-             * Removes a material row
-             * @param {string} rowId - The ID of the row to remove
-             */
-            function removeMaterialRow(rowId) {
-                const row = document.getElementById(rowId);
-                if (row) {
-                    row.remove();
-                    updateTotalCosts();
-                    
-                    // Hide section if no rows remain
-                    if (materialsContainer.children.length === 0) {
-                        materialsSection.classList.add('hidden');
-                    }
-                }
-            }
-            
-            // Make removeMaterialRow globally accessible
-            window.removeMaterialRow = removeMaterialRow;
-
-            /**
-             * Adds a new personnel row to the personnel section
-             */
-            function addPersonnelRow() {
-                // Check if data is loaded
-                if (!isDataLoaded) {
-                    alert('Please wait for personnel data to finish loading before adding personnel.');
-                    return;
-                }
-
-                personnelRowCounter++;
-                const rowId = `personnel-row-${personnelRowCounter}`;
-                
-                const personnelRow = document.createElement('div');
-                personnelRow.className = 'grid grid-cols-12 gap-x-2 mt-1 personnel-row';
-                personnelRow.id = rowId;
-                personnelRow.innerHTML = `
-                    <select class="personnel-dropdown col-span-5 mt-1 block w-full px-2 py-1 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 text-xs h-7">
-                        ${createPersonnelDropdown()}
-                    </select>
-                    <input type="number" class="personnel-days col-span-1 mt-1 block w-full px-2 py-1 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 text-xs h-7" placeholder="0" step="0.1" />
-                    <input type="number" class="personnel-hours col-span-1 mt-1 block w-full px-2 py-1 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 text-xs h-7" placeholder="0" step="0.1" />
-                    <input type="number" class="personnel-rate col-span-2 mt-1 block w-full px-2 py-1 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 text-xs h-7" placeholder="0.00" step="0.01" />
-                    <input type="number" class="personnel-total col-span-2 mt-1 block w-full px-2 py-1 bg-gray-100 border border-gray-300 rounded-md shadow-sm text-xs h-7" disabled />
-                    <button class="remove-row-btn col-span-1 mt-1 flex items-center justify-center" onclick="removePersonnelRow('${rowId}')" title="Remove row">
-                        ×
-                    </button>
-                `;
-
-                personnelContainer.appendChild(personnelRow);
-
-                // Add event listeners for this row
-                const dropdown = personnelRow.querySelector('.personnel-dropdown');
-                const daysInput = personnelRow.querySelector('.personnel-days');
-                const hoursInput = personnelRow.querySelector('.personnel-hours');
-                const rateInput = personnelRow.querySelector('.personnel-rate');
-                const totalInput = personnelRow.querySelector('.personnel-total');
-
-                // Auto-populate rate when personnel is selected
-                dropdown.addEventListener('change', function() {
-                    const selectedOption = this.options[this.selectedIndex];
-                    if (selectedOption.dataset.rate) {
-                        rateInput.value = parseFloat(selectedOption.dataset.rate).toFixed(2);
-                        calculatePersonnelRowTotal();
-                    } else {
-                        rateInput.value = '';
-                        totalInput.value = '';
-                    }
-                    updateTotalCosts();
-                });
-
-                // Calculate row total when any input changes
-                function calculatePersonnelRowTotal() {
-                    const days = parseFloat(daysInput.value) || 0;
-                    const hours = parseFloat(hoursInput.value) || 0;
-                    const rate = parseFloat(rateInput.value) || 0;
-                    const total = days * hours * rate;
-                    totalInput.value = total.toFixed(2);
-                }
-
-                [daysInput, hoursInput, rateInput].forEach(input => {
-                    input.addEventListener('input', function() {
-                        calculatePersonnelRowTotal();
-                        updateTotalCosts();
-                    });
-                });
-            }
-
-            /**
-             * Removes a personnel row
-             * @param {string} rowId - The ID of the row to remove
-             */
-            function removePersonnelRow(rowId) {
-                const row = document.getElementById(rowId);
-                if (row) {
-                    row.remove();
-                    updateTotalCosts();
-                    
-                    // Hide section if no rows remain
-                    if (personnelContainer.children.length === 0) {
-                        personnelSection.classList.add('hidden');
-                    }
-                }
-            }
-            
-            // Make removePersonnelRow globally accessible
-            window.removePersonnelRow = removePersonnelRow;
-
-            /**
-             * Adds a new component row to the components section
-             */
-            function addComponentRow() {
-                componentRowCounter++;
-                const rowId = `component-row-${componentRowCounter}`;
-                
-                const componentRow = document.createElement('div');
-                componentRow.className = 'grid grid-cols-12 gap-x-2 mt-1 component-row';
-                componentRow.id = rowId;
-                componentRow.innerHTML = `
-                    <input type="text" class="component-description col-span-5 mt-1 block w-full px-2 py-1 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 text-xs h-7" placeholder="Component description..." />
-                    <input type="number" class="component-qty col-span-2 mt-1 block w-full px-2 py-1 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 text-xs h-7" placeholder="0" step="0.01" />
-                    <input type="number" class="component-rate col-span-2 mt-1 block w-full px-2 py-1 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 text-xs h-7" placeholder="0.00" step="0.01" />
-                    <input type="number" class="component-total col-span-2 mt-1 block w-full px-2 py-1 bg-gray-100 border border-gray-300 rounded-md shadow-sm text-xs h-7" disabled />
-                    <button class="remove-row-btn col-span-1 mt-1 flex items-center justify-center" onclick="removeComponentRow('${rowId}')" title="Remove row">
-                        ×
-                    </button>
-                `;
-
-                componentsContainer.appendChild(componentRow);
-
-                // Add event listeners for this row
-                const qtyInput = componentRow.querySelector('.component-qty');
-                const rateInput = componentRow.querySelector('.component-rate');
-                const totalInput = componentRow.querySelector('.component-total');
-
-                // Calculate row total when qty or rate changes
-                function calculateComponentRowTotal() {
-                    const qty = parseFloat(qtyInput.value) || 0;
-                    const rate = parseFloat(rateInput.value) || 0;
-                    const total = qty * rate;
-                    totalInput.value = total.toFixed(2);
-                }
-
-                qtyInput.addEventListener('input', function() {
-                    calculateComponentRowTotal();
-                    updateTotalCosts();
-                });
-
-                rateInput.addEventListener('input', function() {
-                    calculateComponentRowTotal();
-                    updateTotalCosts();
-                });
-            }
-
-            /**
-             * Removes a component row
-             * @param {string} rowId - The ID of the row to remove
-             */
-            function removeComponentRow(rowId) {
-                const row = document.getElementById(rowId);
-                if (row) {
-                    row.remove();
-                    updateTotalCosts();
-                    
-                    // Hide section if no rows remain
-                    if (componentsContainer.children.length === 0) {
-                        componentsSection.classList.add('hidden');
-                    }
-                }
-            }
-            
-            // Make removeComponentRow globally accessible
-            window.removeComponentRow = removeComponentRow;
-
-            /**
-             * Updates the total costs in the summary section
-             */
-            function updateTotalCosts() {
-                let totalCost = 0;
-
-                // Sum materials
-                document.querySelectorAll('.material-total').forEach(input => {
-                    totalCost += parseFloat(input.value) || 0;
-                });
-
-                // Sum personnel
-                document.querySelectorAll('.personnel-total').forEach(input => {
-                    totalCost += parseFloat(input.value) || 0;
-                });
-
-                // Sum components
-                document.querySelectorAll('.component-total').forEach(input => {
-                    totalCost += parseFloat(input.value) || 0;
-                });
-
-                // Update display
-                const totalCostElement = document.getElementById('total-cost');
-                const totalPriceElement = document.getElementById('total-price');
-                const unitPriceElement = document.getElementById('unit-price');
-                const marginInput = document.getElementById('margin');
-
-                totalCostElement.textContent = `$${totalCost.toFixed(2)}`;
-
-                // Calculate total price with margin: Total Price = Total Cost / (1 - Margin%)
-                const margin = parseFloat(marginInput.value) || 0;
-                const marginDecimal = margin / 100;
-                
-                // Prevent division by zero or negative margins >= 100%
-                let totalPrice = 0;
-                if (marginDecimal < 1 && marginDecimal >= 0) {
-                    totalPrice = totalCost / (1 - marginDecimal);
-                } else if (marginDecimal < 0) {
-                    // Handle negative margins (discount)
-                    totalPrice = totalCost / (1 - marginDecimal);
-                } else {
-                    // Margin >= 100% would result in division by zero or negative denominator
-                    totalPrice = totalCost; // Fallback to cost
-                }
-                
-                totalPriceElement.textContent = `${totalPrice.toFixed(2)}`;
-
-                // For now, unit price equals total price (assuming quantity of 1)
-                unitPriceElement.textContent = `$${totalPrice.toFixed(2)}`;
-            }
-
-            /**
-             * Collects all form data for logging purposes
-             * @returns {Object} Complete form data
-             */
-            function collectFormData() {
-                const formData = {
-                    description: document.getElementById('description').value.trim(),
-                    dimensions: document.getElementById('dimensions').value.trim(),
-                    margin: parseFloat(document.getElementById('margin').value) || 40,
-                    materials: [],
-                    personnel: [],
-                    components: []
-                };
-
-                // Include original row number if we're in edit mode
-                if (isEditMode && originalRowNumber) {
-                    formData.originalRowNumber = originalRowNumber;
-                }
-
-                // Collect materials data
-                document.querySelectorAll('.material-row').forEach(row => {
-                    const materialDropdown = row.querySelector('.material-dropdown');
-                    const qtyInput = row.querySelector('.material-qty');
-                    const unitCostInput = row.querySelector('.material-unit-cost');
-                    const totalInput = row.querySelector('.material-total');
-
-                    if (materialDropdown.value) {
-                        formData.materials.push({
-                            name: materialDropdown.value,
-                            quantity: parseFloat(qtyInput.value) || 0,
-                            unitCost: parseFloat(unitCostInput.value) || 0,
-                            total: parseFloat(totalInput.value) || 0
-                        });
-                    }
-                });
-
-                // Collect personnel data
-                document.querySelectorAll('.personnel-row').forEach(row => {
-                    const personnelDropdown = row.querySelector('.personnel-dropdown');
-                    const daysInput = row.querySelector('.personnel-days');
-                    const hoursInput = row.querySelector('.personnel-hours');
-                    const rateInput = row.querySelector('.personnel-rate');
-                    const totalInput = row.querySelector('.personnel-total');
-
-                    if (personnelDropdown.value) {
-                        formData.personnel.push({
-                            name: personnelDropdown.value,
-                            days: parseFloat(daysInput.value) || 0,
-                            hours: parseFloat(hoursInput.value) || 0,
-                            rate: parseFloat(rateInput.value) || 0,
-                            total: parseFloat(totalInput.value) || 0
-                        });
-                    }
-                });
-
-                // Collect components data
-                document.querySelectorAll('.component-row').forEach(row => {
-                    const descInput = row.querySelector('.component-description');
-                    const qtyInput = row.querySelector('.component-qty');
-                    const rateInput = row.querySelector('.component-rate');
-                    const totalInput = row.querySelector('.component-total');
-
-                    if (descInput.value.trim()) {
-                        formData.components.push({
-                            description: descInput.value.trim(),
-                            quantity: parseFloat(qtyInput.value) || 0,
-                            rate: parseFloat(rateInput.value) || 0,
-                            total: parseFloat(totalInput.value) || 0
-                        });
-                    }
-                });
-
-                return formData;
-            }
-
-            /**
-             * Populates the form with previously saved data
-             * @param {Object} formData - The form data to restore
-             */
-            function populateFormData(formData) {
-                if (!formData) return;
-
-                // Set edit mode if this data has an original row number
-                if (formData.originalRowNumber) {
-                    isEditMode = true;
-                    originalRowNumber = formData.originalRowNumber;
-                    
-                    // Update the button text and title to reflect edit mode
-                    addToProjectBtn.textContent = 'Update Project';
-                    document.querySelector('h1').textContent = 'Edit Fabrication Details';
-                }
-
-                // Populate basic fields
-                if (formData.description) {
-                    document.getElementById('description').value = formData.description;
-                }
-                if (formData.dimensions) {
-                    document.getElementById('dimensions').value = formData.dimensions;
-                }
-                if (formData.margin !== undefined) {
-                    document.getElementById('margin').value = formData.margin;
-                }
-
-                // Populate materials
-                if (formData.materials && formData.materials.length > 0) {
-                    materialsSection.classList.remove('hidden');
-                    formData.materials.forEach(material => {
-                        addMaterialRow();
-                        const lastRow = materialsContainer.lastElementChild;
-                        const dropdown = lastRow.querySelector('.material-dropdown');
-                        const qtyInput = lastRow.querySelector('.material-qty');
-                        const unitCostInput = lastRow.querySelector('.material-unit-cost');
-
-                        dropdown.value = material.name;
-                        qtyInput.value = material.quantity;
-                        unitCostInput.value = material.unitCost;
-                        
-                        // Trigger calculation
-                        qtyInput.dispatchEvent(new Event('input'));
-                    });
-                }
-
-                // Populate personnel
-                if (formData.personnel && formData.personnel.length > 0) {
-                    personnelSection.classList.remove('hidden');
-                    formData.personnel.forEach(person => {
-                        addPersonnelRow();
-                        const lastRow = personnelContainer.lastElementChild;
-                        const dropdown = lastRow.querySelector('.personnel-dropdown');
-                        const daysInput = lastRow.querySelector('.personnel-days');
-                        const hoursInput = lastRow.querySelector('.personnel-hours');
-                        const rateInput = lastRow.querySelector('.personnel-rate');
-
-                        dropdown.value = person.name;
-                        daysInput.value = person.days;
-                        hoursInput.value = person.hours;
-                        rateInput.value = person.rate;
-                        
-                        // Trigger calculation
-                        daysInput.dispatchEvent(new Event('input'));
-                    });
-                }
-
-                // Populate components
-                if (formData.components && formData.components.length > 0) {
-                    componentsSection.classList.remove('hidden');
-                    formData.components.forEach(component => {
-                        addComponentRow();
-                        const lastRow = componentsContainer.lastElementChild;
-                        const descInput = lastRow.querySelector('.component-description');
-                        const qtyInput = lastRow.querySelector('.component-qty');
-                        const rateInput = lastRow.querySelector('.component-rate');
-
-                        descInput.value = component.description;
-                        qtyInput.value = component.quantity;
-                        rateInput.value = component.rate;
-                        
-                        // Trigger calculation
-                        qtyInput.dispatchEvent(new Event('input'));
-                    });
-                }
-
-                // Update totals after all data is loaded
-                setTimeout(updateTotalCosts, 100);
-            }
-            /**
-             * Adds the current fabrication data to the project spreadsheet
-             */
-            function addToProject() {
-                // Get form values
-                const description = document.getElementById('description').value.trim();
-                const dimensions = document.getElementById('dimensions').value.trim();
-                const totalPriceText = document.getElementById('total-price').textContent;
-                
-                // Extract numeric value from total price (remove $ and commas)
-                const totalPrice = parseFloat(totalPriceText.replace(/[^0-9.-]+/g, '')) || 0;
-                
-                // Validate required fields
-                if (!description) {
-                    alert('Please enter a description before adding to project.');
-                    return;
-                }
-                
-                if (totalPrice <= 0) {
-                    alert('Please add materials, personnel, or components to calculate a total price.');
-                    return;
-                }
-                
-                // Collect complete form data for logging
-                const completeFormData = collectFormData();
-                
-                // Prepare data object - pass originalRowNumber at the top level too for backup
-                const fabricationData = {
-                    description: description,
-                    dimensions: dimensions,
-                    totalPrice: totalPrice,
-                    formData: completeFormData,
-                    originalRowNumber: isEditMode ? originalRowNumber : null
-                };
-                
-                // Debug log to help troubleshoot
-                if (isEditMode) {
-                    console.log('Edit mode - originalRowNumber:', originalRowNumber);
-                    console.log('fabricationData:', fabricationData);
-                }
-                
-                // Disable button and show loading state
-                addToProjectBtn.disabled = true;
-                const originalButtonText = addToProjectBtn.textContent;
-                addToProjectBtn.textContent = isEditMode ? 'Updating...' : 'Adding...';
-                addToProjectBtn.classList.add('opacity-50');
-                
-                // Call server-side function
-                google.script.run
-                    .withSuccessHandler(function(result) {
-                        // Re-enable button
-                        addToProjectBtn.disabled = false;
-                        addToProjectBtn.textContent = originalButtonText;
-                        addToProjectBtn.classList.remove('opacity-50');
-                        
-                        if (result.success) {
-                            if (result.isUpdate) {
-                                // For updates, just reset the form and return to normal mode
-                                resetFormToNewMode();
-                            } else {
-                                // For new items, simply reset the form
-                                resetForm();
-                            }
-                        } else {
-                            alert(`Error: ${result.message}`);
-                        }
-                    })
-                    .withFailureHandler(function(error) {
-                        // Re-enable button
-                        addToProjectBtn.disabled = false;
-                        addToProjectBtn.textContent = originalButtonText;
-                        addToProjectBtn.classList.remove('opacity-50');
-                        
-                        console.error('Error adding to project:', error);
-                        alert('An error occurred while adding to the project. Please try again.');
-                    })
-                    .addFabricationToProject(fabricationData);
-            }
-            function resetForm() {
-                // Clear all input fields
-                document.getElementById('description').value = '';
-                document.getElementById('dimensions').value = '';
-                
-                // Remove all dynamic rows
-                materialsContainer.innerHTML = '';
-                personnelContainer.innerHTML = '';
-                componentsContainer.innerHTML = '';
-                
-                // Hide all sections
-                materialsSection.classList.add('hidden');
-                personnelSection.classList.add('hidden');
-                componentsSection.classList.add('hidden');
-                
-                // Reset counters
-                materialRowCounter = 0;
-                personnelRowCounter = 0;
-                componentRowCounter = 0;
-                
-                // Reset margin to default
-                document.getElementById('margin').value = '40';
-                
-                // Update totals
-                updateTotalCosts();
-            }
-
-            // === EVENT LISTENERS ===
-            
-            // Drawer functionality
-            drawerTrigger.addEventListener('click', () => drawer.classList.remove('translate-x-full'));
-            closeDrawerBtn.addEventListener('click', () => drawer.classList.add('translate-x-full'));
-            
-            // Add section links
-            addMaterialLink.addEventListener('click', () => {
-                if (!isDataLoaded) {
-                    alert('Please wait for data to finish loading.');
-                    return;
-                }
-                materialsSection.classList.remove('hidden');
-                addMaterialRow();
-            });
-            
-            addPersonnelLink.addEventListener('click', () => {
-                if (!isDataLoaded) {
-                    alert('Please wait for data to finish loading.');
-                    return;
-                }
-                personnelSection.classList.remove('hidden');
-                addPersonnelRow();
-            });
-            
-            addComponentLink.addEventListener('click', () => {
-                componentsSection.classList.remove('hidden');
-                addComponentRow();
-            });
-            
-            // Reset button
-            resetBtn.addEventListener('click', resetForm);
-            
-            // Add to Project button
-            addToProjectBtn.addEventListener('click', addToProject);
-            
-            // Margin change listener
-            document.getElementById('margin').addEventListener('input', updateTotalCosts);
-
-            // === INITIALIZATION ===
-            // Disable add buttons initially
-            disableAddButtons();
-            
-            // Load data from Google Apps Script
-            google.script.run.withSuccessHandler(populateMaterialDropdown).getMaterials();
-            google.script.run.withSuccessHandler(populatePersonnelData).getPersonnel();
-            
-            // Note: Edit form population now happens in checkDataLoadStatus() once data is ready
+  </div>
+</div>
+
+<!-- Drawer -->
+<div id="advanced-drawer" class="fixed top-0 right-0 h-full w-80 bg-white shadow-xl p-4 transform translate-x-full">
+  <div class="flex justify-between items-center mb-4">
+    <h2 class="text-base font-semibold">Advanced Settings</h2>
+    <button id="close-drawer-btn" class="text-gray-500 hover:text-gray-800 text-2xl">&times;</button>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+
+// ── State ────────────────────────────────────────────────────────
+let allFabMaterials  = [];
+let allPersonnel     = [];
+let allPrintMaterials= [];
+let fabLoaded   = false;
+let perLoaded   = false;
+let printLoaded = false;
+let rowCtr = 0, secCtr = 0;
+let isEditMode = false, originalRowNumber = null;
+let dragSrcEl = null;
+
+// ── DOM ──────────────────────────────────────────────────────────
+const $ = id => document.getElementById(id);
+const ungrouped     = $('ungrouped-area');
+const secContainer  = $('sections-container');
+const marginInput   = $('margin');
+const addToProj     = $('add-to-project-btn');
+
+// ── Data Loading ─────────────────────────────────────────────────
+function onFabMaterials(data) { allFabMaterials = data||[]; fabLoaded=true; checkLoaded(); }
+function onPersonnel(data)    { allPersonnel = data||[]; perLoaded=true; checkLoaded(); }
+function onPrintMaterials(raw){
+    allPrintMaterials = (raw||[]).map(m=>({ name:m[0], type:m[1], width:parseFloat(m[2]), height:parseFloat(m[3]), costSheet:parseFloat(m[4]), costLinFt:parseFloat(m[5]) }));
+    printLoaded=true; checkLoaded();
+}
+function checkLoaded() {
+    const fabReady = fabLoaded && perLoaded;
+    const prtReady = printLoaded;
+    if (fabReady) {
+        $('btn-add-mat').disabled = false;
+        $('btn-add-per').disabled = false;
+        document.querySelectorAll('.sec-btn.mat,.sec-btn.per').forEach(b=>b.disabled=false);
+    }
+    if (prtReady) {
+        $('btn-add-prt').disabled = false;
+        document.querySelectorAll('.sec-btn.prt').forEach(b=>b.disabled=false);
+    }
+    if (fabReady && window.editFormData) {
+        populateFormData(window.editFormData);
+        window.editFormData = null;
+    }
+}
+// Start disabled
+['btn-add-mat','btn-add-per','btn-add-prt'].forEach(id=>{ const b=$(id); if(b) b.disabled=true; });
+
+// ── SVG helpers ──────────────────────────────────────────────────
+const GRIP=`<svg width="10" height="16" viewBox="0 0 10 16" fill="currentColor"><circle cx="3" cy="3" r="1.5"/><circle cx="7" cy="3" r="1.5"/><circle cx="3" cy="8" r="1.5"/><circle cx="7" cy="8" r="1.5"/><circle cx="3" cy="13" r="1.5"/><circle cx="7" cy="13" r="1.5"/></svg>`;
+const PLUS=`<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>`;
+const CHEV_R=`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>`;
+
+function uid(){ return `r${++rowCtr}`; }
+
+// ── Option builders ───────────────────────────────────────────────
+function fabMatOpts(){ let o='<option value="">Select Material...</option>'; allFabMaterials.forEach(m=>{o+=`<option value="${m.name}" data-cost="${m.unitCost}">${m.name}</option>`;}); return o; }
+function perOpts(){ let o='<option value="">Select Personnel...</option>'; allPersonnel.forEach(p=>{o+=`<option value="${p.name}" data-rate="${p.projectRate}">${p.name}</option>`;}); return o; }
+function prtMatOpts(){ let o='<option value="">Select Material...</option>'; allPrintMaterials.forEach(m=>{o+=`<option value="${m.name}">${m.name}</option>`;}); return o; }
+
+// ═══════════════════════════════════════════════════════════════
+//  ROW BUILDERS
+// ═══════════════════════════════════════════════════════════════
+
+// ── Material Row ──
+function buildMatRow(d) {
+    const id=uid(), div=document.createElement('div');
+    div.className='draggable-row flex items-start gap-1 mt-1 border border-transparent';
+    div.id=id; div.dataset.rowType='material'; div.setAttribute('draggable','true');
+    div.innerHTML=`
+        <div class="drag-handle mt-1">${GRIP}</div>
+        <span class="row-type-badge badge-mat mt-1.5">Mat</span>
+        <select class="mat-sel mt-1 block w-full px-2 py-1 bg-white border border-gray-300 rounded-md text-xs h-7" style="flex:2.2">${fabMatOpts()}</select>
+        <input type="number" class="mat-qty mt-1 block px-2 py-1 bg-white border border-gray-300 rounded-md text-xs h-7" placeholder="Qty" step="0.01" style="flex:0.8;min-width:0"/>
+        <input type="number" class="mat-uc mt-1 block px-2 py-1 bg-white border border-gray-300 rounded-md text-xs h-7" placeholder="Unit $" step="0.01" style="flex:1;min-width:0"/>
+        <input type="number" class="row-total mat-tot mt-1 block px-2 py-1 bg-gray-100 border border-gray-300 rounded-md text-xs h-7" disabled style="flex:1;min-width:0"/>
+        <button class="remove-row-btn mt-1 flex-shrink-0 w-5 text-center" data-remove="${id}">×</button>`;
+    const sel=div.querySelector('.mat-sel'),qty=div.querySelector('.mat-qty'),uc=div.querySelector('.mat-uc'),tot=div.querySelector('.mat-tot');
+    sel.addEventListener('change',()=>{ const o=sel.selectedOptions[0]; uc.value=o?.dataset.cost||''; calcMat(); });
+    const calcMat=()=>{ tot.value=((parseFloat(qty.value)||0)*(parseFloat(uc.value)||0)).toFixed(2); updateTotals(); };
+    qty.addEventListener('input',calcMat); uc.addEventListener('input',calcMat);
+    attachDrag(div);
+    if(d){ sel.value=d.name||''; qty.value=d.quantity||''; uc.value=d.unitCost||''; calcMat(); }
+    return div;
+}
+
+// ── Personnel Row ──
+function buildPerRow(d) {
+    const id=uid(), div=document.createElement('div');
+    div.className='draggable-row mt-1 border border-transparent';
+    div.id=id; div.dataset.rowType='personnel'; div.setAttribute('draggable','true');
+    div.innerHTML=`
+        <div class="flex items-start gap-1">
+            <div class="drag-handle mt-1">${GRIP}</div>
+            <span class="row-type-badge badge-per mt-1.5">Per</span>
+            <select class="per-sel mt-1 block w-full px-2 py-1 bg-white border border-gray-300 rounded-md text-xs h-7" style="flex:2.2">${perOpts()}</select>
+            <input type="number" class="per-days mt-1 block px-2 py-1 bg-white border border-gray-300 rounded-md text-xs h-7" placeholder="Days" step="0.1" style="flex:0.7;min-width:0"/>
+            <input type="number" class="per-hrs mt-1 block px-2 py-1 bg-white border border-gray-300 rounded-md text-xs h-7" placeholder="Hrs" step="0.1" style="flex:0.7;min-width:0"/>
+            <input type="number" class="per-rate mt-1 block px-2 py-1 bg-white border border-gray-300 rounded-md text-xs h-7" placeholder="Rate" step="0.01" style="flex:0.9;min-width:0"/>
+            <input type="number" class="row-total per-tot mt-1 block px-2 py-1 bg-gray-100 border border-gray-300 rounded-md text-xs h-7" disabled style="flex:1;min-width:0"/>
+            <button class="remove-row-btn mt-1 flex-shrink-0 w-5 text-center" data-remove="${id}">×</button>
+        </div>
+        <div class="flex items-center gap-2 mt-1 ml-7 pl-1">
+            <label class="flex items-center gap-1.5 text-xs text-gray-500 cursor-pointer">
+                <input type="checkbox" class="per-date-chk w-3 h-3 rounded accent-blue-600"/> Assign date
+            </label>
+            <div class="date-input-wrap flex items-center">
+                <input type="date" class="per-date px-2 py-0.5 bg-white border border-gray-300 rounded-md text-xs h-6"/>
+            </div>
+        </div>`;
+    const sel=div.querySelector('.per-sel'), days=div.querySelector('.per-days'), hrs=div.querySelector('.per-hrs'),
+          rate=div.querySelector('.per-rate'), tot=div.querySelector('.per-tot'),
+          chk=div.querySelector('.per-date-chk'), wrap=div.querySelector('.date-input-wrap');
+    const calcPer=()=>{ tot.value=((parseFloat(days.value)||0)*(parseFloat(hrs.value)||0)*(parseFloat(rate.value)||0)).toFixed(2); updateTotals(); };
+    sel.addEventListener('change',()=>{ const o=sel.selectedOptions[0]; rate.value=o?.dataset.rate||''; calcPer(); });
+    [days,hrs,rate].forEach(el=>el.addEventListener('input',calcPer));
+    chk.addEventListener('change',()=>wrap.classList.toggle('open',chk.checked));
+    attachDrag(div);
+    if(d){ sel.value=d.name||''; days.value=d.days||''; hrs.value=d.hours||''; rate.value=d.rate||''; if(d.date){chk.checked=true;wrap.classList.add('open');div.querySelector('.per-date').value=d.date;} calcPer(); }
+    return div;
+}
+
+// ── Component Row ──
+function buildComRow(d) {
+    const id=uid(), div=document.createElement('div');
+    div.className='draggable-row flex items-start gap-1 mt-1 border border-transparent';
+    div.id=id; div.dataset.rowType='component'; div.setAttribute('draggable','true');
+    div.innerHTML=`
+        <div class="drag-handle mt-1">${GRIP}</div>
+        <span class="row-type-badge badge-com mt-1.5">Cmp</span>
+        <input type="text" class="com-desc mt-1 block w-full px-2 py-1 bg-white border border-gray-300 rounded-md text-xs h-7" placeholder="Description" style="flex:2.5"/>
+        <input type="number" class="com-qty mt-1 block px-2 py-1 bg-white border border-gray-300 rounded-md text-xs h-7" placeholder="Qty" step="0.01" style="flex:0.8;min-width:0"/>
+        <input type="number" class="com-rate mt-1 block px-2 py-1 bg-white border border-gray-300 rounded-md text-xs h-7" placeholder="Rate" step="0.01" style="flex:1;min-width:0"/>
+        <input type="number" class="row-total com-tot mt-1 block px-2 py-1 bg-gray-100 border border-gray-300 rounded-md text-xs h-7" disabled style="flex:1;min-width:0"/>
+        <button class="remove-row-btn mt-1 flex-shrink-0 w-5 text-center" data-remove="${id}">×</button>`;
+    const qty=div.querySelector('.com-qty'),rate=div.querySelector('.com-rate'),tot=div.querySelector('.com-tot');
+    const calc=()=>{ tot.value=((parseFloat(qty.value)||0)*(parseFloat(rate.value)||0)).toFixed(2); updateTotals(); };
+    [qty,rate].forEach(el=>el.addEventListener('input',calc));
+    attachDrag(div);
+    if(d){ div.querySelector('.com-desc').value=d.description||''; qty.value=d.quantity||''; rate.value=d.rate||''; calc(); }
+    return div;
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  PRINTING BLOCK
+// ═══════════════════════════════════════════════════════════════
+const toHrs=(t,u)=>{ const n=Number(t)||0; return u==='Minutes'?n/60:n; };
+
+function calcPrintCosts(ps) {
+    const mat=allPrintMaterials.find(m=>m.name===ps.materialName);
+    if(!mat||!ps.quantity||!ps.width||!ps.height) return null;
+    const qty=Number(ps.quantity)||0, aw=Number(ps.width)||0, ah=Number(ps.height)||0;
+    const bl=0.25, sp=0.25, awt=aw+bl, aht=ah+bl;
+    let matCost=0, linFt=0;
+
+    if(mat.type==='ROLL'){
+        const rw=mat.width;
+        if(awt>rw && aht>rw) return {error:'Artwork wider than selected roll.'};
+        const cP=Math.floor((rw+sp)/(awt+sp)), cL=Math.floor((rw+sp)/(aht+sp));
+        const cols=Math.max(cP,cL,1), rowH=cL>cP?awt:aht;
+        const rows=Math.ceil(qty/cols);
+        linFt=((rows*rowH)+((rows-1)*sp))/12;
+        matCost=(linFt+2.5)*mat.costLinFt;
+    } else {
+        const sw=mat.width,sh=mat.height,sc=mat.costSheet;
+        const fp=(awt<=sw&&aht<=sh), fl=(awt<=sh&&aht<=sw);
+        if(!fp&&!fl) return {error:'Artwork larger than selected sheet.'};
+        const p1=fp?Math.floor((sw+sp)/(awt+sp))*Math.floor((sh+sp)/(aht+sp)):0;
+        const p2=fl?Math.floor((sw+sp)/(aht+sp))*Math.floor((sh+sp)/(awt+sp)):0;
+        const pps=Math.max(p1,p2,1), sheets=Math.ceil(qty/pps);
+        matCost=Math.max(sheets*sc, sc*0.5);
+    }
+
+    let sqFt=(awt*aht/144)*qty;
+    if(ps.doubleSided) sqFt*=2;
+    const perim=(aw*2+ah*2)*qty;
+    const printH=(sqFt/0.83)/60;
+    let cutH=(perim/120)/60; if(ps.complexShape) cutH*=1.5;
+    const runH=printH+cutH+(sqFt/20.52)/60+(sqFt/6.2)/60;
+    const inkCost=sqFt*0.165;
+    const cutCost=cutH*25;
+    const desCost=((sqFt/25)*0.0625*60)+(toHrs(ps.designTime,ps.designTimeUnit)*60);
+    let lamCost=0;
+    if(ps.lamination) lamCost=mat.type==='ROLL'?linFt*1.02:sqFt*0.2267;
+    const eqCost=runH*4.95;
+    const manOpH=toHrs(ps.laborDecalsTime,ps.laborDecalsTimeUnit)+toHrs(ps.laborFinishingTime,ps.laborFinishingTimeUnit)+toHrs(ps.laborInstallingTime,ps.laborInstallingTimeUnit);
+    const opCost=(runH+manOpH)*28;
+    const total=matCost+inkCost+cutCost+desCost+lamCost+eqCost+opCost;
+    return { total, mat:matCost, ink:inkCost, cut:cutCost, des:desCost, lam:lamCost, eq:eqCost, op:opCost };
+}
+
+function buildPrtRow(d) {
+    const id=uid(), div=document.createElement('div');
+    div.className='draggable-row mt-1 border border-transparent';
+    div.id=id; div.dataset.rowType='printing'; div.setAttribute('draggable','true');
+
+    // Printing state object stored on the element
+    const ps=Object.assign({ description:'', materialName:'', quantity:1, width:'', height:'', complexShape:false, doubleSided:false, lamination:false, designTime:'', designTimeUnit:'Minutes', laborDecalsTime:'', laborDecalsTimeUnit:'Minutes', laborFinishingTime:'', laborFinishingTimeUnit:'Minutes', laborInstallingTime:'', laborInstallingTimeUnit:'Minutes' }, d||{});
+    div._ps = ps;
+
+    div.innerHTML=`
+    <div class="print-block">
+      <div class="print-block-header prt-toggle-hdr">
+        <span class="drag-handle" data-drag-handle>${GRIP}</span>
+        <span class="row-type-badge badge-prt">Print</span>
+        <span class="prt-hdr-desc text-xs font-semibold text-purple-800 flex-grow truncate">${ps.description||'Printing'}</span>
+        <span class="prt-hdr-cost text-xs font-semibold text-purple-700 mr-1">—</span>
+        <span class="chevron open text-purple-400">${CHEV_R}</span>
+        <button class="remove-row-btn ml-1 flex-shrink-0" data-remove="${id}">×</button>
+      </div>
+      <div class="print-block-body prt-body">
+        <!-- Description -->
+        <div class="mb-3">
+          <label class="text-xs font-medium text-gray-600 block">Description</label>
+          <input type="text" class="prt-desc mt-1 block w-full px-2 py-1 bg-white border border-gray-300 rounded-md text-xs h-7" placeholder="e.g. Vinyl banner print"/>
+        </div>
+        <!-- Qty / W / H -->
+        <div class="grid grid-cols-3 gap-x-3 mb-3">
+          <div><label class="text-xs font-medium text-gray-600 block">Quantity</label><input type="number" class="prt-qty mt-1 block w-full px-2 py-1 bg-white border border-gray-300 rounded-md text-xs h-7" min="1" value="1"/></div>
+          <div><label class="text-xs font-medium text-gray-600 block">Width (in)</label><input type="number" class="prt-w mt-1 block w-full px-2 py-1 bg-white border border-gray-300 rounded-md text-xs h-7" step="0.1" placeholder="0.0"/></div>
+          <div><label class="text-xs font-medium text-gray-600 block">Height (in)</label><input type="number" class="prt-h mt-1 block w-full px-2 py-1 bg-white border border-gray-300 rounded-md text-xs h-7" step="0.1" placeholder="0.0"/></div>
+        </div>
+        <!-- Material -->
+        <div class="mb-3">
+          <label class="text-xs font-medium text-gray-600 block">Print Material</label>
+          <select class="prt-mat mt-1 block w-full px-2 py-1 bg-white border border-gray-300 rounded-md text-xs">${prtMatOpts()}</select>
+          <div class="prt-err text-xs text-red-600 mt-1 hidden"></div>
+        </div>
+        <!-- Options -->
+        <div class="flex items-center gap-4 mb-3">
+          <label class="flex items-center gap-1 text-xs text-gray-600 cursor-pointer"><input type="checkbox" class="prt-complex w-3 h-3"/> Complex Shape</label>
+          <label class="flex items-center gap-1 text-xs text-gray-600 cursor-pointer"><input type="checkbox" class="prt-dbl w-3 h-3"/> Double Sided</label>
+          <label class="flex items-center gap-1 text-xs text-gray-600 cursor-pointer"><input type="checkbox" class="prt-lam w-3 h-3"/> Lamination</label>
+        </div>
+        <!-- Breakdown -->
+        <div class="prt-breakdown bg-white rounded border border-purple-100 p-2 mb-3 hidden">
+          <div class="print-cost-line"><span>Material</span><span class="bd-mat">—</span></div>
+          <div class="print-cost-line"><span>Ink</span><span class="bd-ink">—</span></div>
+          <div class="print-cost-line"><span>Cutting</span><span class="bd-cut">—</span></div>
+          <div class="print-cost-line"><span>Design</span><span class="bd-des">—</span></div>
+          <div class="print-cost-line"><span>Lamination</span><span class="bd-lam">—</span></div>
+          <div class="print-cost-line"><span>Equipment</span><span class="bd-eq">—</span></div>
+          <div class="print-cost-line"><span>Operator</span><span class="bd-op">—</span></div>
+          <div class="print-cost-line subtotal-line"><span>Total Cost</span><span class="bd-tot">—</span></div>
+        </div>
+        <!-- Advanced labor -->
+        <div class="border-t border-purple-100 pt-2">
+          <button class="text-purple-600 text-xs font-semibold flex items-center gap-1 hover:text-purple-800 prt-adv-toggle">
+            <svg class="chevron" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+            Advanced Labor
+          </button>
+          <div class="adv-labor-body mt-2 space-y-2">
+            ${advLaborRow('design','Design Labor')}
+            ${advLaborRow('decals','Decals')}
+            ${advLaborRow('finishing','Finishing')}
+            ${advLaborRow('installing','Installing')}
+          </div>
+        </div>
+      </div>
+    </div>
+    <input type="number" class="row-total prt-tot hidden" disabled value="0"/>`;
+
+    // Toggle header click (but not drag handle or remove btn)
+    div.querySelector('.prt-toggle-hdr').addEventListener('click', e=>{
+        if(e.target.closest('[data-drag-handle]')||e.target.closest('[data-remove]')) return;
+        const body=div.querySelector('.prt-body'), hdr=div.querySelector('.print-block-header'), chev=hdr.querySelector('.chevron');
+        const hidden=body.classList.contains('hidden');
+        body.classList.toggle('hidden',!hidden);
+        hdr.classList.toggle('collapsed',!hidden);
+        chev.classList.toggle('open',hidden);
+    });
+
+    // Advanced toggle
+    div.querySelector('.prt-adv-toggle').addEventListener('click', e=>{
+        e.stopPropagation();
+        const body=div.querySelector('.adv-labor-body');
+        body.classList.toggle('open');
+        div.querySelector('.prt-adv-toggle .chevron').classList.toggle('open', body.classList.contains('open'));
+    });
+
+    // Sync inputs to ps + recalculate
+    const sync=()=>{
+        ps.description  = div.querySelector('.prt-desc').value;
+        ps.materialName = div.querySelector('.prt-mat').value;
+        ps.quantity     = div.querySelector('.prt-qty').value;
+        ps.width        = div.querySelector('.prt-w').value;
+        ps.height       = div.querySelector('.prt-h').value;
+        ps.complexShape = div.querySelector('.prt-complex').checked;
+        ps.doubleSided  = div.querySelector('.prt-dbl').checked;
+        ps.lamination   = div.querySelector('.prt-lam').checked;
+        refreshPrint(div, ps);
+    };
+    div.querySelectorAll('.prt-desc,.prt-qty,.prt-w,.prt-h').forEach(el=>el.addEventListener('input',sync));
+    div.querySelectorAll('.prt-mat,.prt-complex,.prt-dbl,.prt-lam').forEach(el=>el.addEventListener('change',sync));
+
+    // Advanced labor
+    [
+        {k:'design',    ts:'designTime',           tu:'designTimeUnit'},
+        {k:'decals',    ts:'laborDecalsTime',       tu:'laborDecalsTimeUnit'},
+        {k:'finishing', ts:'laborFinishingTime',    tu:'laborFinishingTimeUnit'},
+        {k:'installing',ts:'laborInstallingTime',   tu:'laborInstallingTimeUnit'},
+    ].forEach(({k,ts,tu})=>{
+        const chk=div.querySelector(`.adv-chk[data-key="${k}"]`);
+        const inp=div.querySelector(`.adv-inp[data-key="${k}"]`);
+        const qEl=div.querySelector(`.adv-qty[data-key="${k}"]`);
+        const uEl=div.querySelector(`.adv-unit[data-key="${k}"]`);
+        if(ps[ts]){chk.checked=true; inp.classList.remove('hidden'); qEl.value=ps[ts]; uEl.value=ps[tu]||'Minutes';}
+        chk.addEventListener('change',()=>{ inp.classList.toggle('hidden',!chk.checked); if(!chk.checked){ps[ts]=''; qEl.value='';} sync(); });
+        qEl.addEventListener('input',()=>{ps[ts]=qEl.value; sync();});
+        uEl.addEventListener('change',()=>{ps[tu]=uEl.value; sync();});
+    });
+
+    attachDrag(div);
+
+    // Restore saved data
+    if(d){
+        div.querySelector('.prt-desc').value = d.description||'';
+        div.querySelector('.prt-qty').value  = d.quantity||1;
+        div.querySelector('.prt-w').value    = d.width||'';
+        div.querySelector('.prt-h').value    = d.height||'';
+        if(d.materialName) div.querySelector('.prt-mat').value=d.materialName;
+        div.querySelector('.prt-complex').checked = !!d.complexShape;
+        div.querySelector('.prt-dbl').checked     = !!d.doubleSided;
+        div.querySelector('.prt-lam').checked     = !!d.lamination;
+        if(d.materialName && d.quantity && d.width && d.height) setTimeout(()=>refreshPrint(div,ps),80);
+    }
+    return div;
+}
+
+function advLaborRow(key, label){
+    return `<div>
+        <div class="flex items-center gap-2">
+            <input type="checkbox" class="adv-chk w-3 h-3 accent-purple-600" data-key="${key}"/>
+            <span class="text-xs text-gray-700 font-medium">${label}</span>
+            <span class="text-xs text-gray-400">($28/hr)</span>
+        </div>
+        <div class="adv-inp hidden flex items-center gap-2 ml-5 mt-1" data-key="${key}">
+            <input type="number" class="adv-qty w-20 px-2 py-1 bg-white border border-gray-300 rounded-md text-xs" placeholder="0" min="0" step="0.1" data-key="${key}"/>
+            <select class="adv-unit px-2 py-1 bg-white border border-gray-300 rounded-md text-xs" data-key="${key}"><option>Minutes</option><option>Hours</option></select>
+        </div>
+    </div>`;
+}
+
+function refreshPrint(div, ps){
+    const errEl=div.querySelector('.prt-err'), bd=div.querySelector('.prt-breakdown');
+    const tot=div.querySelector('.prt-tot'), hdrD=div.querySelector('.prt-hdr-desc'), hdrC=div.querySelector('.prt-hdr-cost');
+    const fmt=v=>`$${v.toFixed(2)}`;
+    hdrD.textContent=ps.description||'Printing';
+    errEl.classList.add('hidden');
+    const r=calcPrintCosts(ps);
+    if(!r){ bd.classList.add('hidden'); tot.value='0'; hdrC.textContent='—'; updateTotals(); return; }
+    if(r.error){ errEl.textContent=r.error; errEl.classList.remove('hidden'); bd.classList.add('hidden'); tot.value='0'; hdrC.textContent='—'; updateTotals(); return; }
+    div.querySelector('.bd-mat').textContent=fmt(r.mat);
+    div.querySelector('.bd-ink').textContent=fmt(r.ink);
+    div.querySelector('.bd-cut').textContent=fmt(r.cut);
+    div.querySelector('.bd-des').textContent=fmt(r.des);
+    div.querySelector('.bd-lam').textContent=fmt(r.lam);
+    div.querySelector('.bd-eq').textContent =fmt(r.eq);
+    div.querySelector('.bd-op').textContent =fmt(r.op);
+    div.querySelector('.bd-tot').textContent=fmt(r.total);
+    bd.classList.remove('hidden');
+    tot.value=r.total.toFixed(2);
+    hdrC.textContent=fmt(r.total);
+    updateTotals();
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  TOTALS
+// ═══════════════════════════════════════════════════════════════
+function updateTotals(){
+    let grand=0;
+    document.querySelectorAll('.row-total').forEach(i=>{ grand+=parseFloat(i.value)||0; });
+    document.querySelectorAll('.fab-section').forEach(sec=>{
+        let sub=0; sec.querySelectorAll('.row-total').forEach(i=>{sub+=parseFloat(i.value)||0;});
+        const b=sec.querySelector('.fab-section-subtotal'); if(b) b.textContent=`$${sub.toFixed(2)}`;
+    });
+    $('total-cost').textContent=`$${grand.toFixed(2)}`;
+    const m=(parseFloat(marginInput.value)||0)/100;
+    const price=(m<1&&m>=0)?grand/(1-m):grand;
+    $('total-price').textContent=`$${price.toFixed(2)}`;
+    $('unit-price').textContent =`$${price.toFixed(2)}`;
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  SECTIONS
+// ═══════════════════════════════════════════════════════════════
+function buildSection(title, collapsed){
+    ++secCtr;
+    const id=`sec-${secCtr}`, sec=document.createElement('div');
+    sec.className='fab-section'; sec.id=id;
+    sec.innerHTML=`
+        <div class="fab-section-header ${collapsed?'collapsed':''}">
+            <svg class="chevron ${collapsed?'':'open'} flex-shrink-0 cursor-pointer text-gray-400 hover:text-gray-600" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" data-sec-toggle="${id}"><polyline points="9 18 15 12 9 6"/></svg>
+            <input class="fab-section-title" value="${title||'New Section'}" placeholder="Section title" spellcheck="false"/>
+            <span class="fab-section-subtotal">$0.00</span>
+            <button class="text-gray-400 hover:text-red-500 ml-1 text-base leading-none" data-sec-del="${id}">×</button>
+        </div>
+        <div class="fab-section-body ${collapsed?'hidden':''}">
+            <div class="drop-zone sec-zone" data-section="${id}"></div>
+            <div class="flex flex-wrap items-center gap-x-3 gap-y-1 mt-2 pt-2 border-t border-gray-200">
+                <button class="sec-btn mat" data-sec-add="mat" data-section="${id}">${PLUS}Material</button>
+                <button class="sec-btn per" data-sec-add="per" data-section="${id}">${PLUS}Personnel</button>
+                <button class="sec-btn com" data-sec-add="com" data-section="${id}">${PLUS}Component</button>
+                <button class="sec-btn prt" data-sec-add="prt" data-section="${id}">${PLUS}Printing</button>
+            </div>
+        </div>`;
+    sec.querySelector(`[data-sec-toggle="${id}"]`).addEventListener('click',()=>{
+        const b=sec.querySelector('.fab-section-body'), h=sec.querySelector('.fab-section-header'), c=sec.querySelector('.chevron');
+        const hidden=b.classList.contains('hidden'); b.classList.toggle('hidden',!hidden); c.classList.toggle('open',hidden); h.classList.toggle('collapsed',!hidden);
+    });
+    sec.querySelector(`[data-sec-del="${id}"]`).addEventListener('click',()=>{
+        const n=sec.querySelectorAll('.draggable-row').length;
+        if(n>0&&!confirm(`Delete section and all ${n} row(s)?`)) return;
+        sec.remove(); updateTotals();
+    });
+    sec.querySelectorAll('[data-sec-add]').forEach(btn=>{
+        btn.addEventListener('click',()=>{
+            const t=btn.dataset.secAdd, zone=sec.querySelector('.sec-zone');
+            if(t==='mat'){ if(!fabLoaded) return alert('Data loading…'); zone.appendChild(buildMatRow(null)); }
+            else if(t==='per'){ if(!perLoaded) return alert('Data loading…'); zone.appendChild(buildPerRow(null)); }
+            else if(t==='com'){ zone.appendChild(buildComRow(null)); }
+            else if(t==='prt'){ if(!printLoaded) return alert('Print materials loading…'); zone.appendChild(buildPrtRow(null)); }
+            updateTotals();
         });
-    </script>
+    });
+    attachDropZone(sec.querySelector('.sec-zone'));
+    secContainer.appendChild(sec);
+    return sec;
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  DRAG & DROP
+// ═══════════════════════════════════════════════════════════════
+function attachDrag(row){
+    row.addEventListener('dragstart',e=>{ dragSrcEl=row; row.classList.add('dragging'); e.dataTransfer.effectAllowed='move'; e.dataTransfer.setData('text/plain',row.id); });
+    row.addEventListener('dragend',()=>{ row.classList.remove('dragging'); document.querySelectorAll('.drag-over-top').forEach(el=>el.classList.remove('drag-over-top')); document.querySelectorAll('.drop-zone').forEach(z=>z.classList.remove('drag-active')); dragSrcEl=null; });
+}
+function attachDropZone(zone){
+    zone.addEventListener('dragover',e=>{ e.preventDefault(); zone.classList.add('drag-active'); const a=dragAfter(zone,e.clientY); document.querySelectorAll('.drag-over-top').forEach(el=>el.classList.remove('drag-over-top')); if(a)a.classList.add('drag-over-top'); });
+    zone.addEventListener('dragleave',e=>{ if(!zone.contains(e.relatedTarget)){zone.classList.remove('drag-active');document.querySelectorAll('.drag-over-top').forEach(el=>el.classList.remove('drag-over-top'));} });
+    zone.addEventListener('drop',e=>{ e.preventDefault(); zone.classList.remove('drag-active'); document.querySelectorAll('.drag-over-top').forEach(el=>el.classList.remove('drag-over-top')); if(!dragSrcEl)return; const a=dragAfter(zone,e.clientY); a?zone.insertBefore(dragSrcEl,a):zone.appendChild(dragSrcEl); updateTotals(); });
+}
+function dragAfter(container,y){ return [...container.querySelectorAll('.draggable-row:not(.dragging)')].reduce((c,el)=>{ const box=el.getBoundingClientRect(),off=y-box.top-box.height/2; return(off<0&&off>c.offset)?{offset:off,element:el}:c; },{offset:Number.NEGATIVE_INFINITY}).element; }
+attachDropZone(ungrouped);
+
+// Remove button delegation
+document.addEventListener('click',e=>{ const b=e.target.closest('[data-remove]'); if(b){ const id=b.dataset.remove; const r=document.getElementById(id); if(r){r.remove();updateTotals();} } });
+
+// ═══════════════════════════════════════════════════════════════
+//  GLOBAL BUTTONS
+// ═══════════════════════════════════════════════════════════════
+$('btn-add-mat').addEventListener('click',()=>{ ungrouped.appendChild(buildMatRow(null)); updateTotals(); });
+$('btn-add-per').addEventListener('click',()=>{ ungrouped.appendChild(buildPerRow(null)); updateTotals(); });
+$('btn-add-com').addEventListener('click',()=>{ ungrouped.appendChild(buildComRow(null)); updateTotals(); });
+$('btn-add-prt').addEventListener('click',()=>{ ungrouped.appendChild(buildPrtRow(null)); updateTotals(); });
+$('btn-add-sec').addEventListener('click',()=>buildSection('New Section',false));
+
+// ═══════════════════════════════════════════════════════════════
+//  COLLECT / POPULATE
+// ═══════════════════════════════════════════════════════════════
+function collectZone(zone){
+    const rows=[]; zone.querySelectorAll(':scope > .draggable-row').forEach(row=>{
+        const t=row.dataset.rowType;
+        if(t==='material'){ const n=row.querySelector('.mat-sel').value; if(!n)return; rows.push({type:'material',name:n,quantity:parseFloat(row.querySelector('.mat-qty').value)||0,unitCost:parseFloat(row.querySelector('.mat-uc').value)||0,total:parseFloat(row.querySelector('.mat-tot').value)||0}); }
+        else if(t==='personnel'){ const n=row.querySelector('.per-sel').value; if(!n)return; const dc=row.querySelector('.per-date-chk').checked; rows.push({type:'personnel',name:n,days:parseFloat(row.querySelector('.per-days').value)||0,hours:parseFloat(row.querySelector('.per-hrs').value)||0,rate:parseFloat(row.querySelector('.per-rate').value)||0,total:parseFloat(row.querySelector('.per-tot').value)||0,date:dc?row.querySelector('.per-date').value:null}); }
+        else if(t==='component'){ const d=row.querySelector('.com-desc').value.trim(); if(!d)return; rows.push({type:'component',description:d,quantity:parseFloat(row.querySelector('.com-qty').value)||0,rate:parseFloat(row.querySelector('.com-rate').value)||0,total:parseFloat(row.querySelector('.com-tot').value)||0}); }
+        else if(t==='printing'){ const ps=row._ps||{}; rows.push({type:'printing',...ps,total:parseFloat(row.querySelector('.prt-tot').value)||0}); }
+    });
+    return rows;
+}
+
+function collectFormData(){
+    const d={ description:$('description').value.trim(), dimensions:$('dimensions').value.trim(), margin:parseFloat(marginInput.value)||40, ungrouped:collectZone(ungrouped), sections:[] };
+    if(isEditMode&&originalRowNumber) d.originalRowNumber=originalRowNumber;
+    document.querySelectorAll('.fab-section').forEach(sec=>{ d.sections.push({title:sec.querySelector('.fab-section-title').value,collapsed:sec.querySelector('.fab-section-body').classList.contains('hidden'),rows:collectZone(sec.querySelector('.sec-zone'))}); });
+    const all=[...d.ungrouped,...d.sections.flatMap(s=>s.rows)];
+    d.materials=all.filter(r=>r.type==='material');
+    d.personnel=all.filter(r=>r.type==='personnel');
+    d.components=all.filter(r=>r.type==='component');
+    d.printing=all.filter(r=>r.type==='printing');
+    return d;
+}
+
+function fromData(d){ if(!d)return null; if(d.type==='material')return buildMatRow(d); if(d.type==='personnel')return buildPerRow(d); if(d.type==='component')return buildComRow(d); if(d.type==='printing')return buildPrtRow(d); }
+
+function populateFormData(fd){
+    if(!fd)return;
+    if(fd.originalRowNumber){isEditMode=true;originalRowNumber=fd.originalRowNumber;addToProj.textContent='Update Project';document.querySelector('h1').textContent='Edit Fabrication Details';}
+    if(fd.description)$('description').value=fd.description;
+    if(fd.dimensions)$('dimensions').value=fd.dimensions;
+    if(fd.margin!==undefined)marginInput.value=fd.margin;
+    if(!fd.ungrouped){
+        (fd.materials||[]).forEach(d=>ungrouped.appendChild(buildMatRow(d)));
+        (fd.personnel||[]).forEach(d=>ungrouped.appendChild(buildPerRow(d)));
+        (fd.components||[]).forEach(d=>ungrouped.appendChild(buildComRow(d)));
+        (fd.printing||[]).forEach(d=>ungrouped.appendChild(buildPrtRow(d)));
+    } else {
+        (fd.ungrouped||[]).forEach(d=>{ const r=fromData(d); if(r)ungrouped.appendChild(r); });
+        (fd.sections||[]).forEach(s=>{ const sec=buildSection(s.title,s.collapsed); (s.rows||[]).forEach(d=>{const r=fromData(d);if(r)sec.querySelector('.sec-zone').appendChild(r);}); });
+    }
+    setTimeout(updateTotals,150);
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  ADD TO PROJECT
+// ═══════════════════════════════════════════════════════════════
+function addToProject(){
+    const desc=$('description').value.trim();
+    if(!desc) return alert('Please enter a description.');
+    const price=parseFloat($('total-price').textContent.replace(/[^0-9.-]+/g,''))||0;
+    if(price<=0) return alert('Please add rows to calculate a total price.');
+    const fd=collectFormData();
+    const payload={description:desc,dimensions:fd.dimensions,totalPrice:price,formData:fd,originalRowNumber:isEditMode?originalRowNumber:null};
+    addToProj.disabled=true; const orig=addToProj.textContent;
+    addToProj.textContent=isEditMode?'Updating...':'Adding...'; addToProj.classList.add('opacity-50');
+    google.script.run
+        .withSuccessHandler(r=>{addToProj.disabled=false;addToProj.textContent=orig;addToProj.classList.remove('opacity-50');r.success?(r.isUpdate?resetToNew():reset()):alert(`Error: ${r.message}`);})
+        .withFailureHandler(e=>{addToProj.disabled=false;addToProj.textContent=orig;addToProj.classList.remove('opacity-50');console.error(e);alert('An error occurred.');})
+        .addFabricationToProject(payload);
+}
+
+function reset(){ $('description').value='';$('dimensions').value='';marginInput.value='40';ungrouped.innerHTML='';secContainer.innerHTML='';secCtr=0;rowCtr=0;updateTotals(); }
+function resetToNew(){ reset();isEditMode=false;originalRowNumber=null;addToProj.textContent='Add to Project';document.querySelector('h1').textContent='Fabrication Details'; }
+
+// ═══════════════════════════════════════════════════════════════
+//  MISC LISTENERS
+// ═══════════════════════════════════════════════════════════════
+$('drawer-trigger').addEventListener('click',()=>$('advanced-drawer').classList.remove('translate-x-full'));
+$('close-drawer-btn').addEventListener('click',()=>$('advanced-drawer').classList.add('translate-x-full'));
+$('reset-btn').addEventListener('click',reset);
+addToProj.addEventListener('click',addToProject);
+marginInput.addEventListener('input',updateTotals);
+
+// ═══════════════════════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════════════════════
+google.script.run.withSuccessHandler(onFabMaterials).getMaterials();
+google.script.run.withSuccessHandler(onPersonnel).getPersonnel();
+google.script.run.withSuccessHandler(onPrintMaterials).getPrintingMaterials();
+
+}); // end DOMContentLoaded
+</script>
 </body>
 </html>
