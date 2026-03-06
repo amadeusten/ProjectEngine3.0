@@ -76,6 +76,17 @@ const materialsSheet = {
 };
 
 // An object to namespace all functions related to the "Personnel" sheet.
+// Personnel Sheet
+// Schema (Row 1 = headers, data starts Row 2):
+//   A = FirstName  | B = LastName   | C = HourlyRate  | D = DayRate
+//   E = Skills     | F = Email      | G = Phone       | H = Address
+//   I = City       | J = State      | K = Note
+//
+// getData() returns each row as an array indexed as:
+//   [0]  FirstName    [1]  LastName    [2]  HourlyRate  [3]  DayRate
+//   [4]  Skills       [5]  Email       [6]  Phone       [7]  Address
+//   [8]  City         [9]  State       [10] Note
+//   [11] FullName  ← constructed (FirstName + " " + LastName), NOT a sheet column
 const personnelSheet = {
   NAME: 'Personnel',
 
@@ -83,33 +94,52 @@ const personnelSheet = {
     const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
     const sheet = spreadsheet.getSheetByName(this.NAME);
     if (!sheet) {
-      console.error(`Sheet '${this.NAME}' not found. Please ensure a sheet with this exact name exists in the current spreadsheet.`);
+      console.error(`Sheet '${this.NAME}' not found. Please ensure a sheet with this exact name exists.`);
     }
     return sheet;
   },
 
   getData: function() {
     const sheet = this.getSheet();
-    if (!sheet) {
-      return [];
-    }
-    const range = sheet.getRange('B2:C' + sheet.getLastRow());
-    const values = range.getValues();
-    
+    if (!sheet) return [];
+
+    const lastRow = sheet.getLastRow();
+    if (lastRow < 2) return [];
+
+    // Read columns A–K (11 columns, indices 0–10)
+    const values = sheet.getRange('A2:K' + lastRow).getValues();
+
     return values
-      .filter(row => row[0] && row[0].toString().trim() !== "")
+      .filter(row => row[0] && row[0].toString().trim() !== '')  // require FirstName
       .map(row => {
-        const name = row[0].toString().trim();
-        let projectRate = row[1];
+        const firstName  = row[0].toString().trim();
+        const lastName   = row[1].toString().trim();
+        const hourlyRate = typeof row[2] === 'number' ? row[2] : (parseFloat(row[2]) || 0);
+        const dayRate    = typeof row[3] === 'number' ? row[3] : (parseFloat(row[3]) || 0);
+        const skills     = row[4]  ? row[4].toString().trim()  : '';
+        const email      = row[5]  ? row[5].toString().trim()  : '';
+        const phone      = row[6]  ? row[6].toString().trim()  : '';
+        const address    = row[7]  ? row[7].toString().trim()  : '';
+        const city       = row[8]  ? row[8].toString().trim()  : '';
+        const state      = row[9]  ? row[9].toString().trim()  : '';
+        const note       = row[10] ? row[10].toString().trim() : '';
+        const fullName   = `${firstName} ${lastName}`.trim();
 
-        if (typeof projectRate !== 'number') {
-          projectRate = parseFloat(projectRate) || 0;
-        }
-
-        return {
-          name: name,
-          projectRate: projectRate
-        };
+        // Return as positional array — HTML files index by position
+        return [
+          firstName,  // [0]
+          lastName,   // [1]
+          hourlyRate, // [2]
+          dayRate,    // [3]
+          skills,     // [4]
+          email,      // [5]
+          phone,      // [6]
+          address,    // [7]
+          city,       // [8]
+          state,      // [9]
+          note,       // [10]
+          fullName    // [11]
+        ];
       });
   }
 };
@@ -118,7 +148,7 @@ const personnelSheet = {
 const fabricationApp = {
   showDialog: function() {
     const htmlOutput = HtmlService.createHtmlOutputFromFile('FabricationIndex')
-        .setWidth(1250)
+        .setWidth(850)
         .setHeight(850);
     const ui = SpreadsheetApp.getUi();
     ui.showModalDialog(htmlOutput, 'Fabrication Details');
@@ -146,7 +176,7 @@ const fabricationApp = {
     const formData = projectSheet.getLoggedFormData(logId, 'FabricationLog');
     if (formData) {
       const htmlOutput = HtmlService.createHtmlOutputFromFile('FabricationIndex')
-          .setWidth(1250)
+          .setWidth(850)
           .setHeight(850);
       
       const htmlContent = htmlOutput.getContent();
@@ -156,7 +186,7 @@ const fabricationApp = {
       );
       
       const modifiedOutput = HtmlService.createHtmlOutput(modifiedContent)
-          .setWidth(1250)
+          .setWidth(850)
           .setHeight(850);
       
       const ui = SpreadsheetApp.getUi();
@@ -185,7 +215,7 @@ const fabricationApp = {
 const apparelApp = {
   showDialog: function() {
     const htmlOutput = HtmlService.createHtmlOutputFromFile('ApparelIndex')
-        .setWidth(1250)
+        .setWidth(850)
         .setHeight(850);
     const ui = SpreadsheetApp.getUi();
     ui.showModalDialog(htmlOutput, 'Apparel / Screen Printing');
@@ -195,7 +225,7 @@ const apparelApp = {
     const formData = projectSheet.getLoggedFormData(logId, 'ApparelLog');
     if (formData) {
       const htmlOutput = HtmlService.createHtmlOutputFromFile('ApparelIndex')
-          .setWidth(1250)
+          .setWidth(850)
           .setHeight(850);
       
       const htmlContent = htmlOutput.getContent();
@@ -205,7 +235,7 @@ const apparelApp = {
       );
       
       const modifiedOutput = HtmlService.createHtmlOutput(modifiedContent)
-          .setWidth(1250)
+          .setWidth(850)
           .setHeight(850);
       
       const ui = SpreadsheetApp.getUi();
@@ -234,7 +264,7 @@ const apparelApp = {
 const printingApp = {
   showDialog: function() {
     const htmlOutput = HtmlService.createHtmlOutputFromFile('PrintingIndex')
-        .setWidth(1250)
+        .setWidth(850)
         .setHeight(850);
     const ui = SpreadsheetApp.getUi();
     ui.showModalDialog(htmlOutput, 'PrintCut Estimate');
@@ -253,7 +283,7 @@ const printingApp = {
     const formData = projectSheet.getLoggedFormData(logId, 'PrintingLog');
     if (formData) {
       const htmlOutput = HtmlService.createHtmlOutputFromFile('PrintingIndex')
-          .setWidth(1250)
+          .setWidth(850)
           .setHeight(850);
       
       const htmlContent = htmlOutput.getContent();
@@ -2281,6 +2311,45 @@ function getPersonnel() {
 
 function getPrintingMaterials() {
   return printingApp.getMaterials();
+}
+
+/**
+ * Calculates driving distance and time between two addresses
+ * using Google Apps Script's built-in Maps service (no API key needed).
+ * Called from FabricationIndex.html Delivery block.
+ *
+ * @param {string} origin      - Origin address string
+ * @param {string} destination - Destination address string
+ * @returns {Object} { miles, minutes } on success, or { error: string } on failure
+ */
+function calculateDeliveryRoute(origin, destination) {
+  try {
+    const directions = Maps.newDirectionFinder()
+      .setOrigin(origin)
+      .setDestination(destination)
+      .setMode(Maps.DirectionFinder.Mode.DRIVING)
+      .getDirections();
+
+    if (!directions || !directions.routes || directions.routes.length === 0) {
+      return { error: 'No route found between these addresses.' };
+    }
+
+    const leg = directions.routes[0].legs[0];
+
+    // Distance comes back in meters — convert to miles
+    const meters = leg.distance.value;
+    const miles  = meters / 1609.344;
+
+    // Duration comes back in seconds — convert to minutes
+    const seconds = leg.duration.value;
+    const minutes = seconds / 60;
+
+    return { miles, minutes };
+
+  } catch (e) {
+    console.error('calculateDeliveryRoute error:', e.toString());
+    return { error: e.message || 'Route calculation failed.' };
+  }
 }
 
 function addFabricationToProject(fabricationData) {
