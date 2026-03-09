@@ -478,7 +478,6 @@ function calculateEstimate() {
             const linIn=(rows*layoutH)+((rows-1)*spacing);
             const lf=linIn/12;
             totalLinFt   += lf;
-            totalMatCost += (lf+2.5)*mat.costLinFt;
         } else {
             const fitP=artW<=mat.width&&artH<=mat.height;
             const fitL=artW<=mat.height&&artH<=mat.width;
@@ -500,7 +499,8 @@ function calculateEstimate() {
         totalPerimeter += (aw*2+ah*2)*qty;
     });
 
-    if (hasError) { resetCostsUI(); return; }
+    if (mat.type==='ROLL') totalMatCost = (totalLinFt+2.5)*mat.costLinFt;
+    if (hasError) { resetCostsUI(); return; } 
 
     const printHrs  = (totalSqFt/0.83)/60;
     let   cutHrs    = (totalPerimeter/120)/60;
