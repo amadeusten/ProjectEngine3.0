@@ -41,6 +41,12 @@
         .remove-item-btn:hover { color: #dc2626; }
 
         .field-error { font-size: 0.65rem; color: #dc2626; margin-top: 2px; }
+
+        /* Toggle switch */
+        .tog-track { width: 30px; height: 16px; background: #d1d5db; border-radius: 9999px; position: relative; transition: background 0.2s; flex-shrink: 0; cursor: pointer; }
+        .tog-track.on { background: #2563eb; }
+        .tog-thumb { width: 12px; height: 12px; background: white; border-radius: 9999px; position: absolute; top: 2px; left: 2px; transition: left 0.2s; pointer-events: none; }
+        .tog-track.on .tog-thumb { left: 16px; }
     </style>
 </head>
 <body class="bg-gray-100 flex items-center justify-center min-h-screen p-4">
@@ -67,6 +73,13 @@
           <option value="">Select Material</option>
         </select>
         <div id="error-message" class="field-error hidden"></div>
+      </div>
+
+      <!-- Track Quantities Toggle (hidden until multi-item) -->
+      <div id="track-qty-toggle" class="hidden flex items-center gap-2 mb-3">
+        <div class="tog-track" id="track-qty-tog"><div class="tog-thumb"></div></div>
+        <span class="text-xs font-medium text-gray-600 cursor-pointer select-none" id="track-qty-label">Track Quantities</span>
+        <span class="text-xs text-gray-400">(Show per-item pricing on sheet)</span>
       </div>
 
       <!-- Row 3: Details column headers -->
@@ -98,8 +111,6 @@
 
       <!-- Row 4: Options (left) + Additional Options (right) -->
       <div class="grid grid-cols-2 gap-x-8 mb-5">
-
-        <!-- Left: Options -->
         <div>
           <div class="text-xs font-medium text-gray-600 mb-2">Options</div>
           <div class="space-y-1.5">
@@ -114,17 +125,12 @@
             </label>
           </div>
         </div>
-
-        <!-- Right: Additional Options / Installation -->
         <div>
           <div class="text-xs font-medium text-gray-600 mb-2">Additional Options</div>
           <label class="flex items-center gap-2 text-xs text-gray-700 cursor-pointer mb-3">
             <input type="checkbox" id="installation-checkbox" class="rounded"> Printing Installation
           </label>
-
           <div id="installation-block" class="hidden space-y-3 pl-1">
-
-            <!-- Installer -->
             <div>
               <label class="text-xs font-medium text-gray-500 block mb-1">Installer</label>
               <select id="installer-select"
@@ -132,8 +138,6 @@
                 <option value="">Select Installer</option>
               </select>
             </div>
-
-            <!-- Payment type pills -->
             <div>
               <div class="text-xs font-medium text-gray-500 mb-1.5">Payment Type</div>
               <div class="flex gap-2">
@@ -145,8 +149,6 @@
                 <label for="pay-flat"   class="pay-label">Flat Rate</label>
               </div>
             </div>
-
-            <!-- SqFt fields -->
             <div id="install-sqft-fields" class="grid grid-cols-3 gap-2">
               <div>
                 <label class="text-xs text-gray-500 block mb-1">Rate ($/sqft)</label>
@@ -164,8 +166,6 @@
                   class="block w-full px-2 py-1 border border-gray-300 rounded-md text-xs bg-gray-50">
               </div>
             </div>
-
-            <!-- Hourly fields -->
             <div id="install-hourly-fields" class="hidden grid grid-cols-3 gap-2">
               <div>
                 <label class="text-xs text-gray-500 block mb-1">Hours</label>
@@ -183,23 +183,18 @@
                   class="block w-full px-2 py-1 border border-gray-300 rounded-md text-xs bg-gray-50">
               </div>
             </div>
-
-            <!-- Flat rate -->
             <div id="install-flat-fields" class="hidden">
               <label class="text-xs text-gray-500 block mb-1">Total (Flat Rate)</label>
               <input type="number" id="install-flat-total" step="0.01" min="0"
                 class="block w-full px-2 py-1 border border-gray-300 rounded-md text-xs focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
             </div>
-
-          </div><!-- /installation-block -->
+          </div>
         </div>
-      </div><!-- /options grid -->
+      </div>
 
       <!-- SUMMARY BAR -->
       <div class="rounded-md bg-gray-100 p-3">
         <div class="grid items-start gap-x-3" style="grid-template-columns:1fr auto 1fr auto 1fr;">
-
-          <!-- Left: costs -->
           <div class="space-y-1.5">
             <div class="flex justify-between gap-2">
               <span class="text-xs text-gray-600">Total Cost</span>
@@ -222,10 +217,7 @@
               <span id="unit-price" class="text-xs font-semibold">$0.00</span>
             </div>
           </div>
-
           <div class="self-stretch border-l border-gray-300 mx-1"></div>
-
-          <!-- Middle: material usage -->
           <div class="space-y-1.5">
             <div class="text-xs font-medium text-gray-500 mb-1">Material Usage</div>
             <div class="flex justify-between gap-2">
@@ -241,10 +233,7 @@
               <span id="install-cost-display" class="text-xs font-semibold">$0.00</span>
             </div>
           </div>
-
           <div class="self-stretch border-l border-gray-300 mx-1"></div>
-
-          <!-- Right: buttons -->
           <div class="flex flex-col gap-2 justify-center">
             <button id="add-to-project-btn"
               class="w-full bg-blue-600 text-white px-4 py-1.5 rounded-md text-xs font-medium hover:bg-blue-700">
@@ -255,11 +244,10 @@
               Reset
             </button>
           </div>
-
         </div>
-      </div><!-- /summary -->
+      </div>
 
-    </div><!-- /main-panel -->
+    </div>
 
     <!-- DRAWER TRIGGER -->
     <div id="drawer-trigger"
@@ -293,9 +281,8 @@
       <div class="ml-7 text-xs text-gray-500 mt-1">$60.00 per hour</div>
       <div id="design-labor-inputs" class="ml-7 hidden mt-2 flex gap-x-2">
         <input type="number" id="design-labor-quantity" placeholder="0" min="0" step="0.1"
-          class="w-20 px-3 py-2 bg-white border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
-        <select id="design-labor-unit"
-          class="px-3 py-2 bg-white border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+          class="w-20 px-3 py-2 bg-white border border-gray-300 rounded-md text-sm">
+        <select id="design-labor-unit" class="px-3 py-2 bg-white border border-gray-300 rounded-md text-sm">
           <option value="Hours">Hours</option><option value="Minutes">Minutes</option>
         </select>
       </div>
@@ -309,9 +296,8 @@
       <div class="ml-7 text-xs text-gray-500 mt-1">$28.00 per hour</div>
       <div id="decals-labor-inputs" class="ml-7 hidden mt-2 flex gap-x-2">
         <input type="number" id="decals-labor-quantity" placeholder="0" min="0" step="0.1"
-          class="w-20 px-3 py-2 bg-white border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
-        <select id="decals-labor-unit"
-          class="px-3 py-2 bg-white border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+          class="w-20 px-3 py-2 bg-white border border-gray-300 rounded-md text-sm">
+        <select id="decals-labor-unit" class="px-3 py-2 bg-white border border-gray-300 rounded-md text-sm">
           <option value="Hours">Hours</option><option value="Minutes">Minutes</option>
         </select>
       </div>
@@ -325,9 +311,8 @@
       <div class="ml-7 text-xs text-gray-500 mt-1">$28.00 per hour</div>
       <div id="finishing-labor-inputs" class="ml-7 hidden mt-2 flex gap-x-2">
         <input type="number" id="finishing-labor-quantity" placeholder="0" min="0" step="0.1"
-          class="w-20 px-3 py-2 bg-white border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
-        <select id="finishing-labor-unit"
-          class="px-3 py-2 bg-white border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+          class="w-20 px-3 py-2 bg-white border border-gray-300 rounded-md text-sm">
+        <select id="finishing-labor-unit" class="px-3 py-2 bg-white border border-gray-300 rounded-md text-sm">
           <option value="Hours">Hours</option><option value="Minutes">Minutes</option>
         </select>
       </div>
@@ -341,9 +326,8 @@
       <div class="ml-7 text-xs text-gray-500 mt-1">$28.00 per hour</div>
       <div id="installing-labor-inputs" class="ml-7 hidden mt-2 flex gap-x-2">
         <input type="number" id="installing-labor-quantity" placeholder="0" min="0" step="0.1"
-          class="w-20 px-3 py-2 bg-white border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
-        <select id="installing-labor-unit"
-          class="px-3 py-2 bg-white border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+          class="w-20 px-3 py-2 bg-white border border-gray-300 rounded-md text-sm">
+        <select id="installing-labor-unit" class="px-3 py-2 bg-white border border-gray-300 rounded-md text-sm">
           <option value="Hours">Hours</option><option value="Minutes">Minutes</option>
         </select>
       </div>
@@ -357,6 +341,7 @@ const state = {
     materials: [], personnel: [],
     materialName: '', description: '', margin: 60,
     isMultiItem: false,
+    trackQuantities: false,
     items: [{ itemName:'', quantity:1, width:'', height:'' }],
     complexShape: false, doubleSided: false, lamination: false,
     installation: false,
@@ -374,6 +359,26 @@ let isEditMode = false, originalRowNumber = null;
 const fmt  = v => new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(isNaN(v)?0:v);
 const fmtN = (v,d=2) => (isNaN(v)||v===0) ? '—' : Number(v).toFixed(d);
 const toHrs = (t,u) => { const n=Number(t)||0; return u==='Minutes'?n/60:n; };
+
+// ── TRACK QUANTITIES TOGGLE ─────────────────────────────────────
+function updateTrackQtyVisibility() {
+    const toggleEl = document.getElementById('track-qty-toggle');
+    if (state.isMultiItem && state.items.length > 1) {
+        toggleEl.classList.remove('hidden');
+    } else {
+        toggleEl.classList.add('hidden');
+    }
+
+    // Lock toggle in edit mode
+    const togTrack = document.getElementById('track-qty-tog');
+    if (isEditMode) {
+        togTrack.style.opacity = '0.5';
+        togTrack.style.pointerEvents = 'none';
+    } else {
+        togTrack.style.opacity = '';
+        togTrack.style.pointerEvents = '';
+    }
+}
 
 // ── ITEM ROWS UI ─────────────────────────────────────────────────
 function buildItemRow(index, isMulti) {
@@ -405,7 +410,8 @@ function buildItemRow(index, isMulti) {
     if (isMulti) {
         const del = document.createElement('div');
         del.style.cssText = 'display:flex;align-items:flex-end;padding-bottom:1px';
-        if (index > 0) {
+        // In edit mode, hide remove buttons (item count locked after first save)
+        if (index > 0 && !isEditMode) {
             del.innerHTML = `<button class="remove-item-btn" data-del="${index}">×</button>`;
         }
         row.appendChild(del);
@@ -421,6 +427,7 @@ function rebuildItemsUI() {
     document.getElementById('detail-headers-multi').style.display  = isMulti ? 'grid' : 'none';
     state.items.forEach((_,i) => container.appendChild(buildItemRow(i, isMulti)));
     attachItemListeners();
+    updateTrackQtyVisibility();
 }
 
 function attachItemListeners() {
@@ -438,11 +445,61 @@ function attachItemListeners() {
         btn.addEventListener('click', e => {
             const idx = parseInt(e.target.dataset.del);
             state.items.splice(idx, 1);
-            if (state.items.length <= 1) state.isMultiItem = false;
+            if (state.items.length <= 1) {
+                state.isMultiItem = false;
+                state.trackQuantities = false;
+                document.getElementById('track-qty-tog').classList.remove('on');
+            }
             rebuildItemsUI();
             calculateEstimate();
         });
     });
+}
+
+// ── PER-ITEM PRICING (proportional by sqft) ──────────────────────
+/**
+ * Calculates per-item pricing by splitting total costs proportionally
+ * based on each item's square footage relative to total square footage.
+ * This gives a true cost representation: a 24×36 item costs more than a 4×6 item.
+ *
+ * Cost components split proportionally:
+ *   Material, Ink, Cutting, Design (auto), Lamination, Equipment, Operator
+ *
+ * @param {number} totalCost - Grand total cost across all items
+ * @param {number} totalPrice - Grand total price (with margin)
+ * @param {Array} validItems - Array of valid item objects
+ * @param {number} totalSqFt - Total square footage across all items
+ * @returns {Array} Array of { unitPrice, total, sqftShare } per item (same order as validItems)
+ */
+function getPerItemPricing(totalCost, totalPrice, validItems, totalSqFt) {
+    if (!validItems.length || totalSqFt <= 0 || totalPrice <= 0) return [];
+
+    const bleed = 0.25;
+    const pricing = [];
+
+    // Calculate each item's sqft contribution
+    const itemSqFts = validItems.map(item => {
+        const aw = Number(item.width) + bleed;
+        const ah = Number(item.height) + bleed;
+        let sqft = (aw * ah / 144) * (Number(item.quantity) || 0);
+        if (state.doubleSided) sqft *= 2;
+        return sqft;
+    });
+
+    const grandSqFt = itemSqFts.reduce((s, v) => s + v, 0);
+
+    validItems.forEach((item, i) => {
+        const sqftShare = grandSqFt > 0 ? itemSqFts[i] / grandSqFt : 0;
+        const itemTotalPrice = totalPrice * sqftShare;
+        const qty = Number(item.quantity) || 1;
+        pricing.push({
+            unitPrice: qty > 0 ? itemTotalPrice / qty : 0,
+            total: itemTotalPrice,
+            sqftShare: sqftShare
+        });
+    });
+
+    return pricing;
 }
 
 // ── CALCULATION ──────────────────────────────────────────────────
@@ -477,7 +534,7 @@ function calculateEstimate() {
             const rows=Math.ceil(qty/cols);
             const linIn=(rows*layoutH)+((rows-1)*spacing);
             const lf=linIn/12;
-            totalLinFt   += lf;
+            totalLinFt += lf;
         } else {
             const fitP=artW<=mat.width&&artH<=mat.height;
             const fitL=artW<=mat.height&&artH<=mat.width;
@@ -500,7 +557,7 @@ function calculateEstimate() {
     });
 
     if (mat.type==='ROLL') totalMatCost = (totalLinFt+2.5)*mat.costLinFt;
-    if (hasError) { resetCostsUI(); return; } 
+    if (hasError) { resetCostsUI(); return; }
 
     const printHrs  = (totalSqFt/0.83)/60;
     let   cutHrs    = (totalPerimeter/120)/60;
@@ -523,7 +580,6 @@ function calculateEstimate() {
     let   lamCost    = 0;
     if (state.lamination) lamCost = mat.type==='ROLL' ? totalLinFt*1.02 : totalSqFt*0.2267;
 
-    // Update sqft auto-fields for installation
     if (state.installation && state.installPayType==='sqft') {
         document.getElementById('install-sqft-area').value  = totalSqFt.toFixed(2);
         const r = parseFloat(document.getElementById('install-sqft-rate').value)||3;
@@ -537,6 +593,11 @@ function calculateEstimate() {
     const totalPrice = (mg>=0&&mg<100) ? totalCost/(1-mg/100) : totalCost;
     const totalQty   = validItems.reduce((s,it)=>s+(Number(it.quantity)||0),0);
     const unitPrice  = totalQty>0 ? totalPrice/totalQty : 0;
+
+    // Store per-item pricing for payload
+    state._lastItemPricing = getPerItemPricing(totalCost, totalPrice, validItems, totalSqFt);
+    state._lastTotalCost = totalCost;
+    state._lastTotalPrice = totalPrice;
 
     document.getElementById('total-cost').textContent  = fmt(totalCost);
     document.getElementById('total-price').textContent = fmt(totalPrice);
@@ -582,9 +643,11 @@ function resetCostsUI() {
     ['total-cost','total-price','unit-price'].forEach(id=>document.getElementById(id).textContent='$0.00');
     document.getElementById('usage-value').textContent='—';
     document.getElementById('total-sqft').textContent='—';
+    state._lastItemPricing = [];
+    state._lastTotalCost = 0;
+    state._lastTotalPrice = 0;
 }
 
-// ── INSTALL PAY FIELD VISIBILITY ─────────────────────────────────
 function updateInstallPayFields() {
     const t = state.installPayType;
     document.getElementById('install-sqft-fields').classList.toggle('hidden',   t!=='sqft');
@@ -594,8 +657,12 @@ function updateInstallPayFields() {
 
 // ── RESET / COLLECT / SEND ───────────────────────────────────────
 function resetForm() {
+    // Persist trackQuantities across resets (per blueprint)
+    const preserveTrackQty = state.trackQuantities;
+
     Object.assign(state, {
         materialName:'', description:'', margin:60, isMultiItem:false,
+        trackQuantities: preserveTrackQty,
         items:[{itemName:'',quantity:1,width:'',height:''}],
         complexShape:false, doubleSided:false, lamination:false,
         installation:false, installPayType:'sqft',
@@ -605,6 +672,7 @@ function resetForm() {
         laborDecalsTime:'', laborDecalsTimeUnit:'Minutes',
         laborFinishingTime:'', laborFinishingTimeUnit:'Minutes',
         laborInstallingTime:'', laborInstallingTimeUnit:'Minutes',
+        _lastItemPricing:[], _lastTotalCost:0, _lastTotalPrice:0,
     });
     document.getElementById('description').value = '';
     document.getElementById('material').value    = '';
@@ -623,6 +691,8 @@ function resetForm() {
         document.getElementById(`${f}-labor-quantity`).value='';
         document.getElementById(`${f}-labor-unit`).value='Hours';
     });
+    // Update track qty toggle visual state
+    document.getElementById('track-qty-tog').classList.toggle('on', preserveTrackQty);
     rebuildItemsUI();
     resetCostsUI();
 }
@@ -631,6 +701,7 @@ function collectFormData() {
     const fd = {
         description:  state.description,  materialName: state.materialName,
         margin:       state.margin,        isMultiItem:  state.isMultiItem,
+        trackQuantities: state.trackQuantities,
         items:        JSON.parse(JSON.stringify(state.items)),
         complexShape: state.complexShape,  doubleSided: state.doubleSided, lamination: state.lamination,
         installation: state.installation,
@@ -657,10 +728,16 @@ function sendDataToProject() {
     if (totalPrice<=0) { alert('Please configure your estimate to calculate a total price.'); return; }
 
     const printingData = {
-        description: state.description, quantity:1, totalPrice,
+        description: state.description,
+        quantity: 1,
+        totalPrice,
+        isMultiItem: state.isMultiItem,
+        trackQuantities: state.trackQuantities,
+        itemPricing: state._lastItemPricing || [],
         formData: collectFormData(),
         originalRowNumber: isEditMode ? originalRowNumber : null
     };
+
     const btn = document.getElementById('add-to-project-btn');
     btn.disabled=true;
     const origText=btn.textContent;
@@ -680,7 +757,10 @@ function sendDataToProject() {
 }
 
 function resetFormToNewMode() {
-    resetForm(); isEditMode=false; originalRowNumber=null;
+    state.trackQuantities = false;
+    document.getElementById('track-qty-tog').classList.remove('on');
+    resetForm();
+    isEditMode=false; originalRowNumber=null;
     document.getElementById('add-to-project-btn').textContent='Add to Project';
     document.querySelector('h1').textContent='Printing Cost Calculator';
 }
@@ -690,6 +770,10 @@ function populateFormData(fd) {
     if (!fd) return;
     Object.assign(state, fd);
     if (fd.items) state.items = JSON.parse(JSON.stringify(fd.items));
+    if (fd.trackQuantities !== undefined) {
+        state.trackQuantities = fd.trackQuantities;
+        document.getElementById('track-qty-tog').classList.toggle('on', state.trackQuantities);
+    }
     document.getElementById('description').value = fd.description||'';
     document.getElementById('margin').value      = fd.margin??60;
     document.getElementById('material').value    = fd.materialName||'';
@@ -735,6 +819,17 @@ document.addEventListener('DOMContentLoaded', ()=>{
 
     rebuildItemsUI();
 
+    // Track Quantities toggle listener
+    const trackTog = document.getElementById('track-qty-tog');
+    const trackLabel = document.getElementById('track-qty-label');
+    function toggleTrackQty() {
+        if (isEditMode) return; // Locked in edit mode
+        state.trackQuantities = !state.trackQuantities;
+        trackTog.classList.toggle('on', state.trackQuantities);
+    }
+    trackTog.addEventListener('click', toggleTrackQty);
+    trackLabel.addEventListener('click', toggleTrackQty);
+
     // Load materials
     google.script.run.withSuccessHandler(materials=>{
         state.materials = materials.map(m=>({
@@ -760,7 +855,6 @@ document.addEventListener('DOMContentLoaded', ()=>{
         const instSel=document.getElementById('installer-select');
         instSel.innerHTML='<option value="">Select Installer</option>';
         personnel.forEach(p=>{
-            // [FirstName, LastName, HourlyRate, DayRate, Skills, ...]
             const skills=(p[4]||'').toLowerCase();
             if (skills.includes('vinyl installer')) {
                 const fullName=`${p[0]} ${p[1]}`.trim();
@@ -782,6 +876,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
 
     // +Add Item
     document.getElementById('add-item-btn').addEventListener('click',()=>{
+        if (isEditMode) return; // Item count locked in edit mode
         state.isMultiItem=true;
         state.items.push({itemName:'',quantity:1,width:'',height:''});
         rebuildItemsUI(); calculateEstimate();
