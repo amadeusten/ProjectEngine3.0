@@ -693,6 +693,7 @@ function resetForm() {
     });
     // Update track qty toggle visual state
     document.getElementById('track-qty-tog').classList.toggle('on', preserveTrackQty);
+    document.getElementById('track-qty-label').textContent = preserveTrackQty ? 'Tracking Quantities' : 'Track Quantities';
     rebuildItemsUI();
     resetCostsUI();
 }
@@ -773,6 +774,7 @@ function populateFormData(fd) {
     if (fd.trackQuantities !== undefined) {
         state.trackQuantities = fd.trackQuantities;
         document.getElementById('track-qty-tog').classList.toggle('on', state.trackQuantities);
+        document.getElementById('track-qty-label').textContent = state.trackQuantities ? 'Tracking Quantities' : 'Track Quantities';
     }
     document.getElementById('description').value = fd.description||'';
     document.getElementById('margin').value      = fd.margin??60;
@@ -826,6 +828,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
         if (isEditMode) return; // Locked in edit mode
         state.trackQuantities = !state.trackQuantities;
         trackTog.classList.toggle('on', state.trackQuantities);
+        trackLabel.textContent = state.trackQuantities ? 'Tracking Quantities' : 'Track Quantities';
     }
     trackTog.addEventListener('click', toggleTrackQty);
     trackLabel.addEventListener('click', toggleTrackQty);
