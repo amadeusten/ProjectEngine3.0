@@ -403,31 +403,45 @@ const projectSheet = {
 
   // ── Blueprint #3: Multi-Item PRT Child Row Cleanup ────────────
   /**
-   * Removes all child rows belonging to a parent LogID.
-   * Scans Column G notes for `ParentLogID: <parentLogId>` and deletes those rows.
-   * Scans from bottom up to avoid index shifting.
+   * Removes all child rows belonging to a parent block.
+   * Primary: Scans Column G notes for `ParentLogID: <parentLogId>`.
+   * Fallback: If no notes matched (or no parentLogId), removes consecutive
+   *           blank-Column-B rows immediately below the header.
+   * Deletes from bottom up to avoid index shifting.
    */
   _cleanupChildRows: function(sheet, parentRowNum, parentLogId) {
     const lastRow = sheet.getLastRow();
     if (lastRow <= parentRowNum) return;
 
-    // Scan all rows below the parent for child notes
     const numRowsBelow = lastRow - parentRowNum;
     const notes = sheet.getRange(parentRowNum + 1, 7, numRowsBelow, 1).getNotes();
     const colBValues = sheet.getRange(parentRowNum + 1, 2, numRowsBelow, 1).getValues();
 
-    // Collect row numbers to delete (1-based), bottom-up
     const rowsToDelete = [];
-    for (let i = 0; i < notes.length; i++) {
-      const note = notes[i][0];
-      const colB = colBValues[i][0];
-      // Match by ParentLogID note OR by adjacency (blank Column B with no other LogID)
-      if (note && note.includes(`ParentLogID: ${parentLogId}`)) {
-        rowsToDelete.push(parentRowNum + 1 + i);
+
+    // Primary: match by ParentLogID note
+    if (parentLogId) {
+      for (let i = 0; i < notes.length; i++) {
+        const note = notes[i][0];
+        if (note && note.includes('ParentLogID: ' + parentLogId)) {
+          rowsToDelete.push(parentRowNum + 1 + i);
+        }
       }
     }
 
-    // Delete from bottom up to preserve row indices
+    // Fallback: if no notes matched, use adjacency (consecutive blank Column B rows)
+    if (rowsToDelete.length === 0) {
+      for (let i = 0; i < colBValues.length; i++) {
+        const colB = colBValues[i][0];
+        if (!colB || (typeof colB === 'string' && colB.trim() === '')) {
+          rowsToDelete.push(parentRowNum + 1 + i);
+        } else {
+          break; // Stop at first non-blank Column B
+        }
+      }
+    }
+
+    // Delete from bottom up
     for (let i = rowsToDelete.length - 1; i >= 0; i--) {
       sheet.deleteRow(rowsToDelete[i]);
     }
@@ -486,10 +500,8 @@ const projectSheet = {
         // Blueprint #3: Multi-item PRT update with child row cleanup
         const existingId = sheet.getRange(rowNum, 2).getValue() || this.getNextPrintingId();
 
-        // Clean up old child rows using parent LogID note approach
-        if (storedLogId) {
-          this._cleanupChildRows(sheet, rowNum, storedLogId);
-        }
+        // Always clean up old child rows before rewriting
+        this._cleanupChildRows(sheet, rowNum, storedLogId);
 
         // Write using multi-item scenarios
         this._writePrtRows(sheet, rowNum, existingId, itemData, logId, true);
@@ -611,7 +623,7 @@ const projectSheet = {
 
     } else if (trackQuantities) {
       // ── Scenario 2: Multi + Track Quantities ON ──
-      // Header row: Description bold, no prices
+      // Header row: Description bold, no prices (child rows carry qty, rate, total)
       sheet.getRange(headerRow, 1, 1, 7).setValues([[
         '', printingId, description || '', '', '', '', ''
       ]]);
@@ -752,15 +764,32 @@ const nichDocs = {
     if (lastRow < 2) return revenueData;
 
     const data = mainSheet.getRange(2, 2, lastRow - 1, 5).getValues();
-    data.forEach(row => {
-      const id = row[0];
-      const totalPrice = parseFloat(row[4]) || 0;
-      // Guard: skip blank or non-string IDs (e.g. child rows with blank Column B)
-      if (!id || typeof id !== 'string') return;
-      if (id.startsWith('PR')) revenueData.printing += totalPrice;
-      else if (id.startsWith('F')) revenueData.fabrication += totalPrice;
-      else if (id.startsWith('AP')) revenueData.apparel += totalPrice;
-    });
+    for (let i = 0; i < data.length; i++) {
+      const id = data[i][0];
+      const totalPrice = parseFloat(data[i][4]) || 0;
+      // Skip blank or non-string IDs (child rows)
+      if (!id || typeof id !== 'string') continue;
+
+      if (totalPrice > 0) {
+        // Header row has a total — use it directly
+        if (id.startsWith('PR')) revenueData.printing += totalPrice;
+        else if (id.startsWith('F')) revenueData.fabrication += totalPrice;
+        else if (id.startsWith('AP')) revenueData.apparel += totalPrice;
+      } else {
+        // Header row has no total (multi-item Track Qty ON) — sum child rows below
+        let childSum = 0;
+        for (let j = i + 1; j < data.length; j++) {
+          const childId = data[j][0];
+          if (childId && typeof childId === 'string' && childId.trim() !== '') break; // Next block
+          childSum += parseFloat(data[j][4]) || 0;
+        }
+        if (childSum > 0) {
+          if (id.startsWith('PR')) revenueData.printing += childSum;
+          else if (id.startsWith('F')) revenueData.fabrication += childSum;
+          else if (id.startsWith('AP')) revenueData.apparel += childSum;
+        }
+      }
+    }
     return revenueData;
   },
 
