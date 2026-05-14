@@ -872,7 +872,8 @@ function updateTotals() {
     });
     $('total-cost').textContent = `$${grand.toFixed(2)}`;
     const m = (parseFloat(marginInput.value)||0) / 100;
-    const price = (m >= 0 && m < 1) ? grand / (1 - m) : grand;
+    const rawPrice = (m >= 0 && m < 1) ? grand / (1 - m) : grand;
+    const price = Math.ceil(rawPrice);
     $('total-price').textContent = `$${price.toFixed(2)}`;
     const qty = multiOn ? Math.max(multiQty, 1) : 1;
     $('unit-cost').textContent  = `$${(grand / qty).toFixed(2)}`;
