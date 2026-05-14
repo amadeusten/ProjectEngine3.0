@@ -475,7 +475,6 @@ function getPerItemPricing(totalCost, totalPrice, validItems, totalSqFt) {
     if (!validItems.length || totalSqFt <= 0 || totalPrice <= 0) return [];
 
     const bleed = 0.25;
-    const pricing = [];
 
     // Calculate each item's sqft contribution
     const itemSqFts = validItems.map(item => {
@@ -488,13 +487,26 @@ function getPerItemPricing(totalCost, totalPrice, validItems, totalSqFt) {
 
     const grandSqFt = itemSqFts.reduce((s, v) => s + v, 0);
 
+    // Distribute totalPrice proportionally, rounding each to 2 decimals
+    const pricing = [];
+    let allocated = 0;
+
     validItems.forEach((item, i) => {
         const sqftShare = grandSqFt > 0 ? itemSqFts[i] / grandSqFt : 0;
-        const itemTotalPrice = totalPrice * sqftShare;
         const qty = Number(item.quantity) || 1;
+        let itemTotal;
+
+        if (i === validItems.length - 1) {
+            // Last item gets the remainder so totals sum exactly to totalPrice
+            itemTotal = Math.round((totalPrice - allocated) * 100) / 100;
+        } else {
+            itemTotal = Math.round(totalPrice * sqftShare * 100) / 100;
+            allocated += itemTotal;
+        }
+
         pricing.push({
-            unitPrice: qty > 0 ? itemTotalPrice / qty : 0,
-            total: itemTotalPrice,
+            unitPrice: qty > 0 ? Math.round((itemTotal / qty) * 100) / 100 : 0,
+            total: itemTotal,
             sqftShare: sqftShare
         });
     });
@@ -590,7 +602,8 @@ function calculateEstimate() {
 
     const totalCost  = totalMatCost+inkCost+cutCost+dsnCost+equipCost+opCost+lamCost+installCost;
     const mg         = Number(state.margin)||0;
-    const totalPrice = (mg>=0&&mg<100) ? totalCost/(1-mg/100) : totalCost;
+    const rawPrice   = (mg>=0&&mg<100) ? totalCost/(1-mg/100) : totalCost;
+    const totalPrice = Math.ceil(rawPrice);
     const totalQty   = validItems.reduce((s,it)=>s+(Number(it.quantity)||0),0);
     const unitPrice  = totalQty>0 ? totalPrice/totalQty : 0;
 
