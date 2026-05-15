@@ -189,6 +189,24 @@
                 class="block w-full px-2 py-1 border border-gray-300 rounded-md text-xs focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
             </div>
           </div>
+
+          <!-- White Ink -->
+          <label class="flex items-center gap-2 text-xs text-gray-700 cursor-pointer mb-3 mt-3">
+            <input type="checkbox" id="white-ink-checkbox" class="rounded"> White Ink
+          </label>
+          <div id="white-ink-block" class="hidden space-y-3 pl-1">
+            <div>
+              <label class="text-xs font-medium text-gray-500 block mb-1">Number of Passes</label>
+              <select id="white-ink-passes"
+                class="block w-full px-2 py-1 bg-white border border-gray-300 rounded-md text-xs focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                <option value="1">1</option>
+                <option value="2">2</option>
+                <option value="3">3</option>
+                <option value="4">4</option>
+              </select>
+            </div>
+          </div>
+
         </div>
       </div>
 
@@ -352,6 +370,8 @@ const state = {
     laborDecalsTime:'', laborDecalsTimeUnit:'Minutes',
     laborFinishingTime:'', laborFinishingTimeUnit:'Minutes',
     laborInstallingTime:'', laborInstallingTimeUnit:'Minutes',
+    whiteInk: false,
+    whiteInkPasses: 1,
 };
 let isEditMode = false, originalRowNumber = null;
 
@@ -359,6 +379,12 @@ let isEditMode = false, originalRowNumber = null;
 const fmt  = v => new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(isNaN(v)?0:v);
 const fmtN = (v,d=2) => (isNaN(v)||v===0) ? '—' : Number(v).toFixed(d);
 const toHrs = (t,u) => { const n=Number(t)||0; return u==='Minutes'?n/60:n; };
+
+// ── WHITE INK CONSTANTS ─────────────────────────────────────────
+const WHITE_INK_SPEED_BASE      = 0.75;  // sqft/min at 1 pass
+const WHITE_INK_SPEED_DECAY     = 0.80;  // per-pass speed multiplier (20% reduction)
+const WHITE_INK_COST_PER_SQFT   = 0.198; // cost per sqft of white ink
+const WHITE_INK_PASS_MULTIPLIER = 1;     // pass scaling (linear)
 
 // ── TRACK QUANTITIES TOGGLE ─────────────────────────────────────
 function updateTrackQtyVisibility() {
@@ -576,7 +602,16 @@ function calculateEstimate() {
     if (state.complexShape) cutHrs*=1.5;
     const ripHrs    = (totalSqFt/20.52)/60;
     const compHrs   = (totalSqFt/6.2)/60;
-    const runHrs    = printHrs+cutHrs+ripHrs+compHrs;
+
+    // White Ink print time
+    let whiteInkPrintHrs = 0;
+    if (state.whiteInk) {
+        const whiteInkSpeed = WHITE_INK_SPEED_BASE
+            * Math.pow(WHITE_INK_SPEED_DECAY, state.whiteInkPasses - 1);
+        whiteInkPrintHrs = (totalSqFt / whiteInkSpeed) / 60;
+    }
+
+    const runHrs    = printHrs+whiteInkPrintHrs+cutHrs+ripHrs+compHrs;
 
     const dsnHrs  = toHrs(state.designTime,         state.designTimeUnit);
     const decHrs  = toHrs(state.laborDecalsTime,     state.laborDecalsTimeUnit);
@@ -584,7 +619,12 @@ function calculateEstimate() {
     const insHrs  = toHrs(state.laborInstallingTime, state.laborInstallingTimeUnit);
     const manOp   = decHrs+finHrs+insHrs;
 
-    const inkCost    = totalSqFt*0.165;
+    // Ink cost: standard + white ink
+    const standardInkCost = totalSqFt*0.165;
+    const whiteInkCost = state.whiteInk
+        ? totalSqFt * WHITE_INK_COST_PER_SQFT * (state.whiteInkPasses * WHITE_INK_PASS_MULTIPLIER)
+        : 0;
+    const inkCost    = standardInkCost + whiteInkCost;
     const cutCost    = cutHrs*25;
     const dsnCost    = (totalSqFt/25)*0.0625*60 + dsnHrs*60;
     const equipCost  = runHrs*4.95;
@@ -685,6 +725,7 @@ function resetForm() {
         laborDecalsTime:'', laborDecalsTimeUnit:'Minutes',
         laborFinishingTime:'', laborFinishingTimeUnit:'Minutes',
         laborInstallingTime:'', laborInstallingTimeUnit:'Minutes',
+        whiteInk:false, whiteInkPasses:1,
         _lastItemPricing:[], _lastTotalCost:0, _lastTotalPrice:0,
     });
     document.getElementById('description').value = '';
@@ -693,6 +734,9 @@ function resetForm() {
     ['complexShape','doubleSided','lamination'].forEach(id=>document.getElementById(id).checked=false);
     document.getElementById('installation-checkbox').checked=false;
     document.getElementById('installation-block').classList.add('hidden');
+    document.getElementById('white-ink-checkbox').checked=false;
+    document.getElementById('white-ink-block').classList.add('hidden');
+    document.getElementById('white-ink-passes').value='1';
     document.getElementById('install-sqft-rate').value='3.00';
     ['install-hours','install-hourly-rate','install-flat-total'].forEach(id=>document.getElementById(id).value='');
     document.getElementById('installer-select').value='';
@@ -729,6 +773,7 @@ function collectFormData() {
         laborDecalsTime:state.laborDecalsTime, laborDecalsTimeUnit:state.laborDecalsTimeUnit,
         laborFinishingTime:state.laborFinishingTime, laborFinishingTimeUnit:state.laborFinishingTimeUnit,
         laborInstallingTime:state.laborInstallingTime, laborInstallingTimeUnit:state.laborInstallingTimeUnit,
+        whiteInk:state.whiteInk, whiteInkPasses:state.whiteInkPasses,
     };
     if (isEditMode && originalRowNumber) fd.originalRowNumber = originalRowNumber;
     return fd;
@@ -804,6 +849,13 @@ function populateFormData(fd) {
         if (fd.installHourlyRate)      document.getElementById('install-hourly-rate').value   = fd.installHourlyRate;
         if (fd.installFlatTotal)       document.getElementById('install-flat-total').value    = fd.installFlatTotal;
         if (fd.installInstallerName)   document.getElementById('installer-select').value      = fd.installInstallerName;
+    }
+    if (fd.whiteInk) {
+        state.whiteInk = true;
+        state.whiteInkPasses = fd.whiteInkPasses || 1;
+        document.getElementById('white-ink-checkbox').checked = true;
+        document.getElementById('white-ink-block').classList.remove('hidden');
+        document.getElementById('white-ink-passes').value = state.whiteInkPasses;
     }
     const advFields=[
         {cb:'design-labor-checkbox',    inp:'design-labor-inputs',    qty:'design-labor-quantity',    u:'design-labor-unit',    st:'designTime',         su:'designTimeUnit'},
@@ -917,6 +969,21 @@ document.addEventListener('DOMContentLoaded', ()=>{
             document.getElementById('install-hourly-rate').value=opt.dataset.hourlyRate;
             calculateEstimate();
         }
+    });
+
+    // White Ink
+    document.getElementById('white-ink-checkbox').addEventListener('change',function(){
+        state.whiteInk=this.checked;
+        document.getElementById('white-ink-block').classList.toggle('hidden',!this.checked);
+        if (!this.checked) {
+            state.whiteInkPasses=1;
+            document.getElementById('white-ink-passes').value='1';
+        }
+        calculateEstimate();
+    });
+    document.getElementById('white-ink-passes').addEventListener('change',e=>{
+        state.whiteInkPasses=parseInt(e.target.value)||1;
+        calculateEstimate();
     });
 
     // Drawer
